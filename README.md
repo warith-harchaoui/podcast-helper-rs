@@ -1,80 +1,86 @@
-# podcast-helper-rs
+# Podcast Helper (Rust)
 
-Port Rust de [`podcast-helper`](https://github.com/warith-harchaoui/podcast-helper) (Python, même auteur). Même promesse, **URL in, PCM out** : donnez une source audio quelconque, récupérez un flux PCM (pulse-code modulation, l'échantillonnage brut non compressé attendu par les modèles de reconnaissance vocale) — sans réécrire ligne à ligne le code Python, en Rust idiomatique.
+[🇫🇷](https://github.com/warith-harchaoui/podcast-helper-rs/blob/main/LISEZMOI.md) · [🇬🇧](https://github.com/warith-harchaoui/podcast-helper-rs/blob/main/README.md)
 
-Ce crate est destiné à être consommé par [`scribe-reunion`](https://github.com/warith-harchaoui/scribe-reunion) (workspace Cargo, architecture ports/adaptateurs) comme adaptateur d'entrée audio.
+[![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](./LICENSE)
 
-## Périmètre v0.1
+Rust rewrite of [`podcast-helper`](https://github.com/warith-harchaoui/podcast-helper). Same promise, **URL in, PCM out**: give it any audio source, get back a PCM stream (pulse-code modulation, the raw uncompressed sampling that speech-recognition models expect) — not a line-by-line port of the Python code, idiomatic Rust throughout.
 
-`extract_audio_stream(source: &str) -> Result<PcmStream, PodcastHelperError>` distingue en interne :
+## v0.1 scope
 
-| Source | Détection | Comportement |
+`extract_audio_stream(source: &str) -> Result<PcmStream, PodcastHelperError>` distinguishes internally between:
+
+| Source | Detection | Behavior |
 |---|---|---|
-| Fichier local | chemin existant ou schéma `file://` | décodage direct via `ffmpeg` |
-| URL audio directe (`.mp3`, `.m4a`, `.opus`, `.wav`, `.m3u8`, ou URL sans extension reconnue) | extension connue, ou repli par défaut | décodage direct via `ffmpeg` |
-| Flux RSS/Atom | extension `.xml`/`.rss`/`.atom`/`.json` | parsing via [`feed-rs`](https://crates.io/crates/feed-rs), sélection automatique du dernier épisode, puis décodage de son enclosure |
-| Spotify (`*.spotify.com`) | correspondance d'hôte | **refusé** : `PodcastHelperError::DrmProtected`, avec suggestion de chercher le flux RSS public de l'émission |
-| Apple Podcasts (`podcasts.apple.com`) | correspondance d'hôte | **refusé**, même comportement |
-| YouTube / Vimeo / SoundCloud / Twitch | correspondance d'hôte | détecté mais **non implémenté** : `PodcastHelperError::YtDlpNotImplemented` (voir ci-dessous) |
-| Autre schéma (`ftp://`, ...) | — | `PodcastHelperError::UnrecognizedSource` |
+| Local file | existing path, or `file://` scheme | decoded directly via `ffmpeg` |
+| Direct audio URL (`.mp3`, `.m4a`, `.opus`, `.wav`, `.m3u8`, or an unrecognized extension) | known extension, or default fallback | decoded directly via `ffmpeg` |
+| RSS/Atom feed | `.xml`/`.rss`/`.atom`/`.json` extension | parsed via [`feed-rs`](https://crates.io/crates/feed-rs), latest episode auto-selected, then its enclosure decoded |
+| Spotify (`*.spotify.com`) | host match | **refused**: `PodcastHelperError::DrmProtected`, with a hint to look for the show's public RSS feed instead |
+| Apple Podcasts (`podcasts.apple.com`) | host match | **refused**, same behavior |
+| YouTube / Vimeo / SoundCloud / Twitch | host match | detected but **not implemented yet**: `PodcastHelperError::YtDlpNotImplemented` (see below) |
+| Other scheme (`ftp://`, ...) | — | `PodcastHelperError::UnrecognizedSource` |
 
-Sortie : `PcmStream { sample_rate, channels, samples: Vec<f32> }`, par défaut 16 kHz mono (`ExtractOptions::default()`), configurable via `extract_audio_stream_with_options`.
+Output: `PcmStream { sample_rate, channels, samples: Vec<f32> }`, 16 kHz mono by default (`ExtractOptions::default()`), configurable via `extract_audio_stream_with_options`.
 
 ```rust
 let pcm = podcast_helper_rs::extract_audio_stream("https://feeds.npr.org/510289/podcast.xml")?;
-println!("{} échantillons à {} Hz", pcm.samples.len(), pcm.sample_rate);
+println!("{} samples at {} Hz", pcm.samples.len(), pcm.sample_rate);
 ```
 
-### Différences assumées avec le Python
+### Deliberate differences from the Python original
 
-- Pas d'itérateur asynchrone streamé image par image : v0.1 décode en un bloc (`Vec<f32>` complet). Le découpage en frames reste à faire côté appelant si besoin.
-- `itunes:duration` n'est pas extrait (extension podcast non couverte par le modèle unifié de `feed-rs`) : `Episode.duration_seconds` vaut toujours `None` pour l'instant.
-- Pas d'extracteur générique façon `yt-dlp` "generic" : une URL HTTP(S) qui n'est ni un flux (extension connue) ni un hôte DRM/yt-dlp reconnu est tentée directement via `ffmpeg` (comportement volontairement permissif, car beaucoup d'URLs d'enclosure de podcasts n'ont aucune extension).
+- No frame-by-frame async iterator: v0.1 decodes into one block (a full `Vec<f32>`). Splitting into frames is left to the caller for now.
+- `itunes:duration` isn't extracted (that podcast extension isn't covered by `feed-rs`'s unified model): `Episode.duration_seconds` is always `None` for now.
+- No generic `yt-dlp`-style extractor: an HTTP(S) URL that is neither a recognized stream extension nor a known DRM/yt-dlp host is attempted directly via `ffmpeg` (a deliberately permissive choice, since many podcast enclosure URLs have no extension at all).
 
-## `youtube-helper-rs` — pas encore branché
+## `youtube-helper-rs` — not wired in yet
 
-Les sources YouTube/Vimeo/SoundCloud/Twitch sont détectées (`SourceKind::YtDlp`) mais renvoient `PodcastHelperError::YtDlpNotImplemented` : au moment où ce crate a été écrit, [`youtube-helper-rs`](https://github.com/warith-harchaoui/youtube-helper-rs) n'était pas encore publié sur GitHub. Le point de branchement est marqué `// TODO(youtube-helper-rs)` dans `src/error.rs` et `src/lib.rs`. Suivi : voir l'issue [#1](https://github.com/warith-harchaoui/podcast-helper-rs/issues/1) sur ce dépôt.
+YouTube/Vimeo/SoundCloud/Twitch sources are detected (`SourceKind::YtDlp`) but return `PodcastHelperError::YtDlpNotImplemented`: [`youtube-helper-rs`](https://github.com/warith-harchaoui/youtube-helper-rs) was not yet published on GitHub when this crate was written. The integration point is marked `// TODO(youtube-helper-rs)` in `src/error.rs` and `src/lib.rs`. Tracked in issue [#1](https://github.com/warith-harchaoui/podcast-helper-rs/issues/1) on this repository.
 
 ## Installation
 
-Prérequis : `ffmpeg` sur le `PATH` (macOS : `brew install ffmpeg`).
+Requires `ffmpeg` on `PATH` (macOS: `brew install ffmpeg`).
 
 ```toml
 [dependencies]
 podcast-helper-rs = { git = "https://github.com/warith-harchaoui/podcast-helper-rs" }
 ```
 
-## État du projet
+## Project status
 
-- `cargo build` : OK, aucun avertissement.
-- `cargo test` : **32 tests unitaires + 1 doctest passés**, 0 échec, 3 tests d'intégration réseau marqués `#[ignore]` (feed RSS réel, décodage `ffmpeg` bout-en-bout, refus Spotify) — vérifiés manuellement une fois via `cargo test -- --ignored` (les 3 passent) avant de committer, pas exécutés par défaut.
-- `cargo clippy --all-targets` : OK, aucun avertissement.
-- **Couverture de code mesurée** (`cargo llvm-cov`, sur les tests par défaut, réseau exclu) : **92.24 % de lignes couvertes** (451 lignes, 35 non couvertes), 88.82 % de régions, 92.75 % de fonctions. Détail par fichier :
+- `cargo build`: clean, no warnings.
+- `cargo test`: **32 unit tests + 1 doctest passing**, 0 failures, plus 3 `#[ignore]`d network integration tests (a real RSS feed, an end-to-end `ffmpeg` decode, a Spotify refusal) — verified manually once via `cargo test -- --ignored` (all 3 pass) before committing, not run by default.
+- `cargo clippy --all-targets`: clean, no warnings.
+- **Measured code coverage** (`cargo llvm-cov`, default test suite, network excluded): **92.24% line coverage** (451 lines, 35 uncovered), 88.82% region coverage, 92.75% function coverage. Per-file breakdown:
 
-  | Fichier | Lignes couvertes |
+  | File | Line coverage |
   |---|---|
-  | `pcm.rs` | 100.00 % |
-  | `ffmpeg.rs` | 98.06 % |
-  | `episode.rs` | 95.12 % |
-  | `source.rs` | 97.01 % |
-  | `lib.rs` | 90.70 % |
-  | `feed.rs` | 69.33 % (le chemin réseau `fetch_feed`/`latest_episode` n'est exercé que par les tests `#[ignore]`, donc absent de cette mesure) |
+  | `pcm.rs` | 100.00% |
+  | `ffmpeg.rs` | 98.06% |
+  | `episode.rs` | 95.12% |
+  | `source.rs` | 97.01% |
+  | `lib.rs` | 90.70% |
+  | `feed.rs` | 69.33% (the network path `fetch_feed`/`latest_episode` is only exercised by the `#[ignore]`d tests, so it's absent from this measurement) |
 
-  Pour relancer la mesure :
+  To reproduce:
 
   ```bash
-  # une seule fois : llvm-tools (via Homebrew LLVM, ce projet n'utilise pas rustup)
+  # once: LLVM tools (this project uses Homebrew LLVM, not rustup)
   export LLVM_COV=/opt/homebrew/opt/llvm/bin/llvm-cov
   export LLVM_PROFDATA=/opt/homebrew/opt/llvm/bin/llvm-profdata
 
-  cargo llvm-cov --summary-only        # résumé texte
-  cargo llvm-cov --html                # rapport HTML dans target/llvm-cov/html/index.html
+  cargo llvm-cov --summary-only        # text summary
+  cargo llvm-cov --html                # HTML report at target/llvm-cov/html/index.html
   ```
 
-## Licence
+## Related
 
-BSD-3-Clause, voir [LICENSE](LICENSE).
+Part of the same author's local-first tooling as [`podcast-helper`](https://github.com/warith-harchaoui/podcast-helper) (Python) and the [AI Helpers](https://github.com/warith-harchaoui/ai-helpers) suite. Independent rewrite, not a binding.
 
-## Auteur
+## License
+
+BSD-3-Clause, see [LICENSE](LICENSE).
+
+## Author
 
 [Warith HARCHAOUI](https://linkedin.com/in/warith-harchaoui)
