@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Undated Test Podcast</title>
+    <link>https://example.com/undated-show</link>
+    <description>A fixture feed with no pubDate anywhere, to exercise the feed-order fallback.</description>
+    <item>
+      <title>Undated Episode A</title>
+      <guid>undated-a</guid>
+      <description>Listed first in the document, should stay first (RSS convention: newest first).</description>
+      <enclosure url="https://cdn.example.com/undated-a.mp3" length="1000000" type="audio/mpeg"/>
+    </item>
+    <item>
+      <title>Undated Episode B</title>
+      <guid>undated-b</guid>
+      <description>Listed second in the document.</description>
+      <enclosure url="https://cdn.example.com/undated-b.mp3" length="1100000" type="audio/mpeg"/>
+    </item>
+  </channel>
+</rss>

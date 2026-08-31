@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Test Atom Podcast</title>
+  <id>urn:uuid:test-atom-feed</id>
+  <updated>2026-06-15T08:00:00Z</updated>
+  <entry>
+    <title>Atom Episode 1</title>
+    <id>urn:uuid:atom-ep-1</id>
+    <updated>2026-06-01T08:00:00Z</updated>
+    <published>2026-06-01T08:00:00Z</published>
+    <summary>The first Atom-feed episode.</summary>
+    <link rel="enclosure" href="https://cdn.example.com/atom-ep1.m4a" type="audio/mp4" length="9000000"/>
+  </entry>
+  <entry>
+    <title>Atom Episode 2</title>
+    <id>urn:uuid:atom-ep-2</id>
+    <updated>2026-06-08T08:00:00Z</updated>
+    <published>2026-06-08T08:00:00Z</published>
+    <summary>The second and latest Atom-feed episode.</summary>
+    <link rel="enclosure" href="https://cdn.example.com/atom-ep2.m4a" type="audio/mp4" length="9500000"/>
+  </entry>
+</feed>
