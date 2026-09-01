@@ -459,6 +459,7 @@ dependencies = [
  "thiserror",
  "ureq",
  "url",
+ "youtube-helper-rs",
 ]
 
 [[package]]
@@ -1048,6 +1049,16 @@ dependencies = [
  "quote",
  "syn 2.0.119",
  "synstructure",
+]
+
+[[package]]
+name = "youtube-helper-rs"
+version = "0.1.0"
+source = "git+https://github.com/warith-harchaoui/youtube-helper-rs#81148ac3bc2248cb4f5d7fb04c73429e6baee800"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror",
 ]
 
 [[package]]

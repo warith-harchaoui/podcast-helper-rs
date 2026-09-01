@@ -7,9 +7,9 @@
 //! (DRM-gated, impossible to process locally) with a pointer toward the show's
 //! public RSS feed instead.
 //!
-//! v0.1 scope: local files, direct audio URLs, RSS/Atom feeds. yt-dlp-compatible
-//! sources (YouTube, Vimeo, SoundCloud, Twitch, ...) are *detected* but not yet
-//! decoded — see [`PodcastHelperError::YtDlpNotImplemented`] and the crate README.
+//! v0.1 scope: local files, direct audio URLs, RSS/Atom feeds, and yt-dlp-compatible
+//! sources (YouTube, Vimeo, SoundCloud, Twitch, ...) — the last one delegated to
+//! [`youtube_helper_rs`]. See [`PodcastHelperError::YtDlp`] and the crate README.
 //!
 //! ```no_run
 //! # fn main() -> Result<(), podcast_helper_rs::PodcastHelperError> {
@@ -25,6 +25,7 @@ mod feed;
 mod ffmpeg;
 mod pcm;
 mod source;
+mod ytdlp;
 
 pub use episode::Episode;
 pub use error::PodcastHelperError;
@@ -50,7 +51,7 @@ pub fn extract_audio_stream_with_options(
         SourceKind::Drm { platform, hint } => {
             Err(PodcastHelperError::DrmProtected { platform, hint })
         }
-        SourceKind::YtDlp(url) => Err(PodcastHelperError::YtDlpNotImplemented(url)),
+        SourceKind::YtDlp(url) => ytdlp::extract_via_ytdlp(&url, opts),
         SourceKind::Unrecognized(s) => Err(PodcastHelperError::UnrecognizedSource(s)),
         SourceKind::Feed(url) => {
             let episode = feed::latest_episode(&url)?;
@@ -85,9 +86,21 @@ mod tests {
     }
 
     #[test]
-    fn youtube_source_reports_not_implemented_yet() {
+    fn youtube_source_is_delegated_to_youtube_helper_rs() {
+        // No network, no real yt-dlp: point youtube-helper-rs at a binary that
+        // does not exist, so the delegation path is exercised deterministically
+        // and the failure surfaces as `PodcastHelperError::YtDlp`, not a panic
+        // or a silent fallback.
+        // SAFETY: this crate's tests run in one process; no other test mutates
+        // this specific env var concurrently.
+        unsafe {
+            std::env::set_var("YOUTUBE_HELPER_YTDLP_BIN", "yt-dlp-does-not-exist-anywhere");
+        }
         let err = extract_audio_stream("https://www.youtube.com/watch?v=abc123").unwrap_err();
-        assert!(matches!(err, PodcastHelperError::YtDlpNotImplemented(_)));
+        unsafe {
+            std::env::remove_var("YOUTUBE_HELPER_YTDLP_BIN");
+        }
+        assert!(matches!(err, PodcastHelperError::YtDlp { .. }));
     }
 
     #[test]

@@ -43,3 +43,29 @@ fn spotify_url_is_refused_even_though_it_is_a_real_reachable_host() {
     let message = err.to_string();
     assert!(message.contains("Spotify"), "unexpected message: {message}");
 }
+
+/// A stable, short, public-domain YouTube video (the same one used in
+/// `youtube-helper-rs`'s own test suite) — exercises the full delegation path:
+/// classify as `SourceKind::YtDlp` -> `youtube_helper_rs::download_audio` ->
+/// decode the resulting WAV via `ffmpeg`.
+///
+/// Known limitation as of this writing (matches `youtube-helper-rs`'s own
+/// `download_audio_real_video_produces_a_file` test): this can fail with an
+/// `HTTP 403 Forbidden` from `yt-dlp` in sandboxed/CI-like environments without
+/// browser cookies or a PO-token provider configured — YouTube-side anti-bot
+/// enforcement on the media CDN, not a bug in this crate's wiring. The error
+/// surfaces cleanly as `PodcastHelperError::YtDlp { .. }` either way, which is
+/// exactly what this test (and the delegation path) is meant to prove.
+#[test]
+#[ignore = "hits the real network, shells out to yt-dlp and ffmpeg; run explicitly with `cargo test -- --ignored`"]
+fn extracts_pcm_from_a_real_youtube_video_end_to_end() {
+    let pcm = extract_audio_stream("https://www.youtube.com/watch?v=jNQXAC9IVRw")
+        .expect("should download and decode a real YouTube video via youtube-helper-rs");
+    assert_eq!(pcm.sample_rate, 16_000);
+    assert_eq!(pcm.channels, 1);
+    assert!(
+        pcm.samples.len() > 16_000,
+        "expected more than 1 second of audio, got {} samples",
+        pcm.samples.len()
+    );
+}

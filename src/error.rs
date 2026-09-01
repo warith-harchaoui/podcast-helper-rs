@@ -46,13 +46,15 @@ pub enum PodcastHelperError {
     UnrecognizedSource(String),
 
     /// Detected as a yt-dlp-compatible source (YouTube, Vimeo, SoundCloud,
-    /// Twitch, ...) but `youtube-helper-rs` is not wired in yet.
-    ///
-    /// TODO(youtube-helper-rs): once https://github.com/warith-harchaoui/youtube-helper-rs
-    /// is published, delegate this branch to it instead of returning this error.
-    /// Tracked at https://github.com/warith-harchaoui/podcast-helper-rs/issues/1
-    #[error("`{0}` looks like a yt-dlp-compatible source; delegating to youtube-helper-rs is not wired in yet (see issue #1)")]
-    YtDlpNotImplemented(String),
+    /// Twitch, ...) and delegated to `youtube-helper-rs` for the download; this
+    /// variant wraps whatever failure it reported (missing `yt-dlp` binary,
+    /// invalid/unsupported URL, network failure, ...).
+    #[error("failed to fetch `{url}` via youtube-helper-rs: {source}")]
+    YtDlp {
+        url: String,
+        #[source]
+        source: youtube_helper_rs::YoutubeHelperError,
+    },
 
     #[error(transparent)]
     Io(#[from] std::io::Error),

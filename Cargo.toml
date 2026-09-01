@@ -1,8 +1,7 @@
 # Rust port of https://github.com/warith-harchaoui/podcast-helper (Python).
-# Scope v0.1: "URL in, PCM out" for local files, direct audio URLs, and RSS/Atom
-# feeds (auto-picks the latest episode). yt-dlp-compatible sources (YouTube,
-# Vimeo, SoundCloud, Twitch...) are detected but delegated to `youtube-helper-rs`,
-# which is not published yet — see README "Not built yet" and the tracking issue.
+# Scope v0.1: "URL in, PCM out" for local files, direct audio URLs, RSS/Atom feeds
+# (auto-picks the latest episode), and yt-dlp-compatible sources (YouTube, Vimeo,
+# SoundCloud, Twitch...), the last one delegated to `youtube-helper-rs`.
 [package]
 name = "podcast-helper-rs"
 version = "0.1.0"
@@ -26,9 +25,15 @@ url = "2"
 thiserror = "2"
 serde = { version = "1", features = ["derive"] }
 chrono = { version = "0.4", features = ["serde"] }
+# yt-dlp-compatible sources (YouTube, Vimeo, SoundCloud, Twitch...) are delegated
+# here rather than reimplemented: this crate's job is "URL in, PCM out", not
+# talking to hundreds of video sites itself.
+youtube-helper-rs = { git = "https://github.com/warith-harchaoui/youtube-helper-rs" }
+# Needed at runtime now (not just in tests): the yt-dlp delegation path downloads
+# to a real temporary directory before decoding it like any other local file.
+tempfile = "3"
 
 [dev-dependencies]
-tempfile = "3"
 # Used only in tests, to synthesize a tiny local WAV fixture that ffmpeg decodes,
 # so the ffmpeg adapter is exercised by a real subprocess without any network call.
 hound = "3"
