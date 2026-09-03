@@ -25,7 +25,10 @@ pub enum SourceKind {
     /// Twitch, ...). Not yet implemented locally — see `PodcastHelperError::YtDlpNotImplemented`.
     YtDlp(String),
     /// A DRM-gated catalog URL (Spotify, Apple Podcasts) refused outright.
-    Drm { platform: &'static str, hint: String },
+    Drm {
+        platform: &'static str,
+        hint: String,
+    },
     /// A URL with a scheme we don't handle at all (e.g. `ftp://`).
     Unrecognized(String),
 }
@@ -151,7 +154,10 @@ mod tests {
             "https://cdn.example.com/ep1.wav",
             "https://cdn.example.com/live.m3u8",
         ] {
-            assert!(matches!(classify_source(url), SourceKind::DirectAudioUrl(_)));
+            assert!(matches!(
+                classify_source(url),
+                SourceKind::DirectAudioUrl(_)
+            ));
         }
     }
 

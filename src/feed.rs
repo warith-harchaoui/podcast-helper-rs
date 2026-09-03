@@ -77,13 +77,13 @@ mod tests {
         let episodes = parse_feed(RSS_FIXTURE, "https://example.com/feed.xml").unwrap();
         assert_eq!(episodes.len(), 3);
         assert_eq!(episodes[0].title.as_deref(), Some("Episode 3: The Finale"));
-        assert_eq!(
-            episodes[0].enclosure_url,
-            "https://cdn.example.com/ep3.mp3"
-        );
+        assert_eq!(episodes[0].enclosure_url, "https://cdn.example.com/ep3.mp3");
         assert_eq!(episodes[0].enclosure_type.as_deref(), Some("audio/mpeg"));
         assert_eq!(episodes[0].enclosure_size_bytes, Some(15_728_640));
-        assert_eq!(episodes[2].title.as_deref(), Some("Episode 1: The Beginning"));
+        assert_eq!(
+            episodes[2].title.as_deref(),
+            Some("Episode 1: The Beginning")
+        );
     }
 
     #[test]

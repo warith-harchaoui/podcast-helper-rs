@@ -18,7 +18,10 @@ pub enum PodcastHelperError {
     /// literally named `source` as `#[source]` (the error's cause), which must
     /// implement `std::error::Error` — a plain `String` doesn't.
     #[error("ffmpeg failed decoding `{input_source}`: {stderr}")]
-    FfmpegFailed { input_source: String, stderr: String },
+    FfmpegFailed {
+        input_source: String,
+        stderr: String,
+    },
 
     /// An HTTP request (feed fetch or, in the future, enclosure probing) failed
     /// before any bytes could be interpreted.
@@ -38,7 +41,10 @@ pub enum PodcastHelperError {
     /// locally. Mirrors the Python library's behaviour, including the suggested
     /// workaround (find the show's public RSS feed).
     #[error("`{platform}` cannot be processed locally: {hint}")]
-    DrmProtected { platform: &'static str, hint: String },
+    DrmProtected {
+        platform: &'static str,
+        hint: String,
+    },
 
     /// The string is not a local file path, a recognizable direct audio URL, a
     /// recognizable feed URL, or a known DRM/yt-dlp host.

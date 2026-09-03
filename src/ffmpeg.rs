@@ -94,7 +94,9 @@ mod tests {
         for i in 0..total_samples {
             let t = i as f32 / sample_rate as f32;
             let value = (t * 440.0 * 2.0 * std::f32::consts::PI).sin();
-            writer.write_sample((value * i16::MAX as f32) as i16).unwrap();
+            writer
+                .write_sample((value * i16::MAX as f32) as i16)
+                .unwrap();
         }
         writer.finalize().unwrap();
     }
@@ -142,6 +144,9 @@ mod tests {
         f.write_all(b"this is not an audio file at all").unwrap();
 
         let result = decode_with_ffmpeg(bogus_path.to_str().unwrap(), &ExtractOptions::default());
-        assert!(matches!(result, Err(PodcastHelperError::FfmpegFailed { .. })));
+        assert!(matches!(
+            result,
+            Err(PodcastHelperError::FfmpegFailed { .. })
+        ));
     }
 }

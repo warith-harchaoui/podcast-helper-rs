@@ -28,7 +28,9 @@ pub struct Episode {
 /// Pull the first usable audio enclosure out of an entry: prefer the MediaRSS
 /// `media:content` model (feed-rs normalizes RSS `<enclosure>` into this too),
 /// falling back to an Atom `<link rel="enclosure">`.
-fn enclosure_from_entry(entry: &feed_rs::model::Entry) -> Option<(String, Option<String>, Option<u64>)> {
+fn enclosure_from_entry(
+    entry: &feed_rs::model::Entry,
+) -> Option<(String, Option<String>, Option<u64>)> {
     for media in &entry.media {
         for content in &media.content {
             if let Some(url) = &content.url {

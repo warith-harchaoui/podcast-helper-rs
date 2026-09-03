@@ -57,9 +57,7 @@ pub fn extract_audio_stream_with_options(
             let episode = feed::latest_episode(&url)?;
             ffmpeg::decode_with_ffmpeg(&episode.enclosure_url, opts)
         }
-        SourceKind::LocalFile(path) => {
-            ffmpeg::decode_with_ffmpeg(&path.to_string_lossy(), opts)
-        }
+        SourceKind::LocalFile(path) => ffmpeg::decode_with_ffmpeg(&path.to_string_lossy(), opts),
         SourceKind::DirectAudioUrl(url) => ffmpeg::decode_with_ffmpeg(&url, opts),
     }
 }
@@ -70,18 +68,25 @@ mod tests {
 
     #[test]
     fn spotify_source_is_refused_without_touching_ffmpeg_or_network() {
-        let err =
-            extract_audio_stream("https://open.spotify.com/show/abc123").unwrap_err();
-        assert!(matches!(err, PodcastHelperError::DrmProtected { platform: "Spotify", .. }));
+        let err = extract_audio_stream("https://open.spotify.com/show/abc123").unwrap_err();
+        assert!(matches!(
+            err,
+            PodcastHelperError::DrmProtected {
+                platform: "Spotify",
+                ..
+            }
+        ));
     }
 
     #[test]
     fn apple_podcasts_source_is_refused() {
-        let err =
-            extract_audio_stream("https://podcasts.apple.com/us/podcast/id123").unwrap_err();
+        let err = extract_audio_stream("https://podcasts.apple.com/us/podcast/id123").unwrap_err();
         assert!(matches!(
             err,
-            PodcastHelperError::DrmProtected { platform: "Apple Podcasts", .. }
+            PodcastHelperError::DrmProtected {
+                platform: "Apple Podcasts",
+                ..
+            }
         ));
     }
 
