@@ -1054,7 +1054,8 @@ dependencies = [
 [[package]]
 name = "youtube-helper-rs"
 version = "0.1.0"
-source = "git+https://github.com/warith-harchaoui/youtube-helper-rs#81148ac3bc2248cb4f5d7fb04c73429e6baee800"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f25e94ff445314c81d31a1dec430e7a3b3ff2605b4bfbe696664e71bbb1e1d1"
 dependencies = [
  "serde",
  "serde_json",
