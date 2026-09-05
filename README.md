@@ -1,8 +1,8 @@
 # Podcast Helper (Rust)
 
-[🇫🇷](https://github.com/warith-harchaoui/podcast-helper-rs/blob/main/LISEZMOI.md) · [🇬🇧](https://github.com/warith-harchaoui/podcast-helper-rs/blob/main/README.md)
+[🇫🇷](https://github.com/warith-harchaoui/podcast-helper-rs/blob/master/LISEZMOI.md) · [🇬🇧](https://github.com/warith-harchaoui/podcast-helper-rs/blob/master/README.md)
 
-[![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](./LICENSE)
+[![crates.io](https://img.shields.io/crates/v/podcast-helper-rs.svg)](https://crates.io/crates/podcast-helper-rs) [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](./LICENSE)
 
 Rust rewrite of [`podcast-helper`](https://github.com/warith-harchaoui/podcast-helper). Same promise, **URL in, PCM out**: give it any audio source, get back a PCM stream (pulse-code modulation, the raw uncompressed sampling that speech-recognition models expect) — not a line-by-line port of the Python code, idiomatic Rust throughout.
 
@@ -45,7 +45,7 @@ Requires `ffmpeg` on `PATH` (macOS: `brew install ffmpeg`).
 
 ```toml
 [dependencies]
-podcast-helper-rs = { git = "https://github.com/warith-harchaoui/podcast-helper-rs" }
+podcast-helper-rs = "0.1"
 ```
 
 ## Project status

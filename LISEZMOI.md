@@ -1,8 +1,8 @@
 # Podcast Helper (Rust)
 
-[🇫🇷](https://github.com/warith-harchaoui/podcast-helper-rs/blob/main/LISEZMOI.md) · [🇬🇧](https://github.com/warith-harchaoui/podcast-helper-rs/blob/main/README.md)
+[🇫🇷](https://github.com/warith-harchaoui/podcast-helper-rs/blob/master/LISEZMOI.md) · [🇬🇧](https://github.com/warith-harchaoui/podcast-helper-rs/blob/master/README.md)
 
-[![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](./LICENSE)
+[![crates.io](https://img.shields.io/crates/v/podcast-helper-rs.svg)](https://crates.io/crates/podcast-helper-rs) [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](./LICENSE)
 
 Réécriture en Rust de [`podcast-helper`](https://github.com/warith-harchaoui/podcast-helper). Même promesse, **URL in, PCM out** : donnez une source audio quelconque, récupérez un flux PCM (pulse-code modulation, l'échantillonnage brut non compressé attendu par les modèles de reconnaissance vocale) — pas un portage ligne à ligne du code Python, du Rust idiomatique de bout en bout.
 
@@ -45,7 +45,7 @@ Prérequis : `ffmpeg` sur le `PATH` (macOS : `brew install ffmpeg`).
 
 ```toml
 [dependencies]
-podcast-helper-rs = { git = "https://github.com/warith-harchaoui/podcast-helper-rs" }
+podcast-helper-rs = "0.1"
 ```
 
 ## État du projet
