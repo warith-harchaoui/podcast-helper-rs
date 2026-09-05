@@ -4,7 +4,7 @@
 # SoundCloud, Twitch...), the last one delegated to `youtube-helper-rs`.
 [package]
 name = "podcast-helper-rs"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "URL in, PCM out: local files, direct audio URLs, and RSS/Atom podcast feeds decoded via ffmpeg. Rust port of podcast-helper."
 license = "BSD-3-Clause"
