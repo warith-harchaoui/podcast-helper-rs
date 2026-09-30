@@ -26,7 +26,9 @@ pub enum SourceKind {
     YtDlp(String),
     /// A DRM-gated catalog URL (Spotify, Apple Podcasts) refused outright.
     Drm {
+        /// The catalog that was recognized, e.g. `Spotify`.
         platform: &'static str,
+        /// The suggested way around it, carried so the caller can show it.
         hint: String,
     },
     /// A URL with a scheme we don't handle at all (e.g. `ftp://`).

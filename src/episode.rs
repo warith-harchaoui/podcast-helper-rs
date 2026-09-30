@@ -8,9 +8,16 @@ use serde::{Deserialize, Serialize};
 /// One episode, normalized regardless of the source feed's format.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Episode {
+    /// The feed's own identifier for this episode, when it provides one. The
+    /// only field suitable for deduplicating across refetches: titles repeat
+    /// and URLs get rewritten.
     pub guid: Option<String>,
+    /// Episode title, as the feed spells it.
     pub title: Option<String>,
+    /// Show notes or summary, as the feed provides them. May contain HTML.
     pub description: Option<String>,
+    /// The episode's web page, which is not the audio file. For the audio,
+    /// see [`Episode::enclosure_url`].
     pub link: Option<String>,
     /// RFC 3339 / ISO 8601 UTC timestamp, e.g. `2026-08-31T12:00:00Z`.
     pub published_at: Option<String>,
@@ -19,9 +26,18 @@ pub struct Episode {
     /// second raw-XML pass. TODO: add a small itunes:duration extractor if a
     /// downstream caller needs it.
     pub duration_seconds: Option<f64>,
+    /// Direct URL of the audio file. The only non-optional field here: an
+    /// entry without one is not an episode this crate can do anything with,
+    /// and is dropped during parsing rather than surfaced empty.
     pub enclosure_url: String,
+    /// MIME type declared for the enclosure, e.g. `audio/mpeg`. Advisory:
+    /// feeds mislabel it often enough that decoding should not rely on it.
     pub enclosure_type: Option<String>,
+    /// Declared size of the enclosure, in bytes. Useful for a progress bar,
+    /// not for allocation: feeds are not obliged to be accurate.
     pub enclosure_size_bytes: Option<u64>,
+    /// Episode artwork, when the entry carries its own rather than inheriting
+    /// the show's.
     pub image_url: Option<String>,
 }
 

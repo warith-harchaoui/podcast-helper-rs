@@ -5,8 +5,12 @@
 /// `[-1.0, 1.0]`, interleaved across channels when `channels > 1`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PcmStream {
+    /// Sample rate of these samples, in hertz.
     pub sample_rate: u32,
+    /// How many channels the samples are interleaved across.
     pub channels: u16,
+    /// The samples themselves, interleaved when `channels > 1`. Its length is
+    /// frames times channels, which is why [`PcmStream::frame_count`] exists.
     pub samples: Vec<f32>,
 }
 
@@ -34,7 +38,9 @@ impl PcmStream {
 /// 16 kHz mono, the shape most speech-recognition/VAD models expect.
 #[derive(Debug, Clone, Copy)]
 pub struct ExtractOptions {
+    /// Resample to this rate, in hertz.
     pub sample_rate: u32,
+    /// Down-mix to a single channel.
     pub to_mono: bool,
 }
 

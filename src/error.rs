@@ -19,19 +19,32 @@ pub enum PodcastHelperError {
     /// implement `std::error::Error` — a plain `String` doesn't.
     #[error("ffmpeg failed decoding `{input_source}`: {stderr}")]
     FfmpegFailed {
+        /// What ffmpeg was pointed at, echoed back so the message identifies
+        /// the failing source without the caller having to correlate.
         input_source: String,
+        /// ffmpeg's own stderr, verbatim.
         stderr: String,
     },
 
     /// An HTTP request (feed fetch or, in the future, enclosure probing) failed
     /// before any bytes could be interpreted.
     #[error("network request to `{url}` failed: {message}")]
-    Network { url: String, message: String },
+    Network {
+        /// The URL that was requested.
+        url: String,
+        /// What the transport reported.
+        message: String,
+    },
 
     /// The bytes at `url` were fetched but are not a feed `feed-rs` can parse
     /// (RSS 0.9x/1.0/2.0, Atom, JSON Feed).
     #[error("RSS/Atom feed at `{url}` is invalid or unparseable: {message}")]
-    InvalidFeed { url: String, message: String },
+    InvalidFeed {
+        /// The URL the bytes came from.
+        url: String,
+        /// What the feed parser objected to.
+        message: String,
+    },
 
     /// The feed parsed cleanly but none of its entries carried an audio enclosure.
     #[error("feed `{0}` has no episodes with an audio enclosure")]
@@ -42,7 +55,10 @@ pub enum PodcastHelperError {
     /// workaround (find the show's public RSS feed).
     #[error("`{platform}` cannot be processed locally: {hint}")]
     DrmProtected {
+        /// The catalog that was recognized, e.g. `Spotify`.
         platform: &'static str,
+        /// The suggested way around it, usually "find the show's public RSS
+        /// feed". Carried in the error so the caller can show it as-is.
         hint: String,
     },
 
@@ -57,11 +73,14 @@ pub enum PodcastHelperError {
     /// invalid/unsupported URL, network failure, ...).
     #[error("failed to fetch `{url}` via youtube-helper-rs: {source}")]
     YtDlp {
+        /// The URL that was delegated.
         url: String,
+        /// Whatever `youtube-helper-rs` reported.
         #[source]
         source: youtube_helper_rs::YoutubeHelperError,
     },
 
+    /// An underlying I/O error, passed through unchanged.
     #[error(transparent)]
     Io(#[from] std::io::Error),
 }
