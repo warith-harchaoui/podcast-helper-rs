@@ -449,7 +449,7 @@ checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
 
 [[package]]
 name = "podcast-helper-rs"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "chrono",
  "feed-rs",
@@ -1053,9 +1053,7 @@ dependencies = [
 
 [[package]]
 name = "youtube-helper-rs"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f25e94ff445314c81d31a1dec430e7a3b3ff2605b4bfbe696664e71bbb1e1d1"
+version = "0.1.2"
 dependencies = [
  "serde",
  "serde_json",

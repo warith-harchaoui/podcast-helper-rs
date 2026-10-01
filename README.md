@@ -8,7 +8,12 @@ Rust rewrite of [`podcast-helper`](https://github.com/warith-harchaoui/podcast-h
 
 ## v0.1 scope
 
-`extract_audio_stream(source: &str) -> Result<PcmStream, PodcastHelperError>` distinguishes internally between:
+**Two entry points, and the difference matters for live media.**
+
+- `extract_audio_stream(source: &str) -> Result<PcmStream, PodcastHelperError>` decodes the whole thing and hands back PCM. Requires the media to end.
+- `resolve_stream_url(source: &str) -> Result<String, PodcastHelperError>` hands back an address instead, for a caller that reads at its own pace. **The only one of the two that works on a live broadcast**, which never finishes downloading.
+
+Both run the same classification, which distinguishes internally between:
 
 | Source | Detection | Behavior |
 |---|---|---|
@@ -17,7 +22,7 @@ Rust rewrite of [`podcast-helper`](https://github.com/warith-harchaoui/podcast-h
 | RSS/Atom feed | `.xml`/`.rss`/`.atom`/`.json` extension | parsed via [`feed-rs`](https://crates.io/crates/feed-rs), latest episode auto-selected, then its enclosure decoded |
 | Spotify (`*.spotify.com`) | host match | **refused**: `PodcastHelperError::DrmProtected`, with a hint to look for the show's public RSS feed instead |
 | Apple Podcasts (`podcasts.apple.com`) | host match | **refused**, same behavior |
-| YouTube / Vimeo / SoundCloud / Twitch | host match | delegated to [`youtube-helper-rs`](https://github.com/warith-harchaoui/youtube-helper-rs): downloads the audio track to a temporary WAV file, then decoded through the same `ffmpeg` path as any other source |
+| YouTube / Vimeo / SoundCloud / Twitch | host match | delegated to [`youtube-helper-rs`](https://github.com/warith-harchaoui/youtube-helper-rs): `extract_audio_stream` downloads the audio track to a temporary WAV file and decodes it through the same `ffmpeg` path as any other source; `resolve_stream_url` asks for the signed media address instead, and never downloads |
 | Other scheme (`ftp://`, ...) | — | `PodcastHelperError::UnrecognizedSource` |
 
 Output: `PcmStream { sample_rate, channels, samples: Vec<f32> }`, 16 kHz mono by default (`ExtractOptions::default()`), configurable via `extract_audio_stream_with_options`.
@@ -25,7 +30,15 @@ Output: `PcmStream { sample_rate, channels, samples: Vec<f32> }`, 16 kHz mono by
 ```rust
 let pcm = podcast_helper_rs::extract_audio_stream("https://feeds.npr.org/510289/podcast.xml")?;
 println!("{} samples at {} Hz", pcm.samples.len(), pcm.sample_rate);
+
+// A live broadcast: resolve, then let a streaming client follow it.
+let url = podcast_helper_rs::resolve_stream_url("https://www.youtube.com/watch?v=<live id>")?;
+println!("stream it with: ffmpeg -i '{url}' ...");
 ```
+
+`resolve_stream_url` yields a local path unchanged, a direct URL unchanged, a feed's latest enclosure after one HTTP fetch of the feed document and no media transfer, and a yt-dlp source's signed media URL. A DRM catalog is refused exactly as the decoding path refuses it — the two entry points agree on what is impossible, so a Spotify URL never reaches `ffmpeg` to fail there as what looks like a network error.
+
+**A resolved URL can expire.** YouTube signs its media addresses and invalidates them within hours: resolve immediately before use, and never persist the result.
 
 ### Deliberate differences from the Python original
 

@@ -8,7 +8,12 @@ Réécriture en Rust de [`podcast-helper`](https://github.com/warith-harchaoui/p
 
 ## Périmètre v0.1
 
-`extract_audio_stream(source: &str) -> Result<PcmStream, PodcastHelperError>` distingue en interne :
+**Deux points d'entrée, et l'écart compte pour un média en direct.**
+
+- `extract_audio_stream(source: &str) -> Result<PcmStream, PodcastHelperError>` décode tout et rend du PCM. Suppose que le média finisse.
+- `resolve_stream_url(source: &str) -> Result<String, PodcastHelperError>` rend une adresse, pour un appelant qui lit à son rythme. **Le seul des deux qui marche sur une émission en direct**, qui ne finit jamais de se télécharger.
+
+Les deux font la même classification, qui distingue en interne :
 
 | Source | Détection | Comportement |
 |---|---|---|
@@ -17,7 +22,7 @@ Réécriture en Rust de [`podcast-helper`](https://github.com/warith-harchaoui/p
 | Flux RSS/Atom | extension `.xml`/`.rss`/`.atom`/`.json` | parsing via [`feed-rs`](https://crates.io/crates/feed-rs), sélection automatique du dernier épisode, puis décodage de son enclosure |
 | Spotify (`*.spotify.com`) | correspondance d'hôte | **refusé** : `PodcastHelperError::DrmProtected`, avec suggestion de chercher le flux RSS public de l'émission |
 | Apple Podcasts (`podcasts.apple.com`) | correspondance d'hôte | **refusé**, même comportement |
-| YouTube / Vimeo / SoundCloud / Twitch | correspondance d'hôte | délégué à [`youtube-helper-rs`](https://github.com/warith-harchaoui/youtube-helper-rs) : téléchargement de la piste audio dans un fichier WAV temporaire, puis décodage par le même chemin `ffmpeg` que les autres sources |
+| YouTube / Vimeo / SoundCloud / Twitch | correspondance d'hôte | délégué à [`youtube-helper-rs`](https://github.com/warith-harchaoui/youtube-helper-rs) : `extract_audio_stream` télécharge la piste audio dans un WAV temporaire et la décode par le même chemin `ffmpeg` que les autres sources ; `resolve_stream_url` demande l'adresse signée du média et ne télécharge rien |
 | Autre schéma (`ftp://`, ...) | — | `PodcastHelperError::UnrecognizedSource` |
 
 Sortie : `PcmStream { sample_rate, channels, samples: Vec<f32> }`, par défaut 16 kHz mono (`ExtractOptions::default()`), configurable via `extract_audio_stream_with_options`.
@@ -25,7 +30,15 @@ Sortie : `PcmStream { sample_rate, channels, samples: Vec<f32> }`, par défaut 1
 ```rust
 let pcm = podcast_helper_rs::extract_audio_stream("https://feeds.npr.org/510289/podcast.xml")?;
 println!("{} échantillons à {} Hz", pcm.samples.len(), pcm.sample_rate);
+
+// Une émission en direct : on résout, puis un lecteur suit le flux.
+let url = podcast_helper_rs::resolve_stream_url("https://www.youtube.com/watch?v=<id du direct>")?;
+println!("à lire avec : ffmpeg -i '{url}' ...");
 ```
+
+`resolve_stream_url` rend un chemin local inchangé, une URL directe inchangée, l'enclosure du dernier épisode d'un flux après un seul téléchargement du document de flux et aucun transfert de média, et l'adresse signée d'une source yt-dlp. Un catalogue protégé est refusé exactement comme le refuse le chemin de décodage : les deux points d'entrée s'accordent sur ce qui est impossible, donc une adresse Spotify n'atteint jamais `ffmpeg` pour y échouer sous les traits d'une panne de réseau.
+
+**Une adresse résolue peut périmer.** YouTube signe ses adresses de média et les invalide en quelques heures : la résoudre juste avant de s'en servir, et ne jamais la garder.
 
 ### Différences assumées avec l'original Python
 
