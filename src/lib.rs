@@ -11,6 +11,13 @@
 //! sources (YouTube, Vimeo, SoundCloud, Twitch, ...) — the last one delegated to
 //! [`youtube_helper_rs`]. See [`PodcastHelperError::YtDlp`] and the crate README.
 //!
+//! **Two entry points, and the difference matters for live media.**
+//! [`extract_audio_stream`] decodes the whole thing and hands back PCM, which
+//! requires the media to end. [`resolve_stream_url`] hands back an address
+//! instead, for a caller that wants to read at its own pace — and it is the
+//! only one of the two that works on a live broadcast, which never finishes
+//! downloading.
+//!
 //! ```no_run
 //! # fn main() -> Result<(), podcast_helper_rs::PodcastHelperError> {
 //! let pcm = podcast_helper_rs::extract_audio_stream("episode.mp3")?;
@@ -66,9 +73,91 @@ pub fn extract_audio_stream_with_options(
     }
 }
 
+/// Resolve `source` to an address a **streaming** client can read, without
+/// decoding anything.
+///
+/// Same classification as [`extract_audio_stream_with_options`], different
+/// answer: that function hands back PCM for media that ends, this one hands
+/// back an address for media that may not. **A live broadcast never finishes
+/// downloading**, so decoding it up front blocks forever; resolving it returns
+/// a manifest URL that `ffmpeg` follows for as long as the broadcast lasts.
+///
+/// What each source kind resolves to:
+///
+/// - a local file — its own path, since `ffmpeg` reads files incrementally
+///   already;
+/// - a direct audio URL — itself, unchanged;
+/// - a feed — the enclosure URL of its latest episode, which costs one HTTP
+///   fetch of the feed document and no media transfer;
+/// - a yt-dlp source — the signed media URL, via
+///   [`youtube_helper_rs::resolve_media_url`];
+/// - a DRM catalog — refused, exactly as the decoding path refuses it.
+///
+/// **The result can expire.** YouTube signs its media URLs and invalidates
+/// them within hours. Resolve immediately before use and never persist the
+/// result: a URL cached yesterday fails today with an opaque HTTP 403.
+///
+/// # Errors
+/// Same set as [`extract_audio_stream_with_options`], minus the `ffmpeg`
+/// variants, since no decoding happens here.
+pub fn resolve_stream_url(source: &str) -> Result<String, PodcastHelperError> {
+    match source::classify_source(source) {
+        SourceKind::Drm { platform, hint } => {
+            Err(PodcastHelperError::DrmProtected { platform, hint })
+        }
+        SourceKind::Unrecognized(s) => Err(PodcastHelperError::UnrecognizedSource(s)),
+        SourceKind::YtDlp(url) => {
+            youtube_helper_rs::resolve_media_url(&url).map_err(|source| PodcastHelperError::YtDlp {
+                url: url.clone(),
+                source,
+            })
+        }
+        SourceKind::Feed(url) => Ok(feed::latest_episode(&url)?.enclosure_url),
+        SourceKind::LocalFile(path) => Ok(path.to_string_lossy().into_owned()),
+        SourceKind::DirectAudioUrl(url) => Ok(url),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn resolving_a_direct_audio_url_changes_nothing_and_touches_no_network() {
+        let url = "https://traffic.megaphone.fm/episode-42";
+        assert_eq!(resolve_stream_url(url).unwrap(), url);
+    }
+
+    #[test]
+    fn resolving_a_local_file_yields_its_own_path() {
+        // ffmpeg already reads a file incrementally, so there is nothing to
+        // resolve: handing back the path keeps the caller's single code path.
+        assert_eq!(
+            resolve_stream_url("/tmp/episode.mp3").unwrap(),
+            "/tmp/episode.mp3"
+        );
+    }
+
+    #[test]
+    fn resolving_a_drm_catalog_is_refused_exactly_like_decoding_it() {
+        // The two entry points must agree on what is impossible. A resolver
+        // that quietly accepted Spotify would push the failure down into
+        // ffmpeg, where it reads as a network error rather than as DRM.
+        let err = resolve_stream_url("https://open.spotify.com/show/abc123").unwrap_err();
+        assert!(matches!(
+            err,
+            PodcastHelperError::DrmProtected {
+                platform: "Spotify",
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn resolving_an_unrecognized_scheme_is_refused_before_any_io() {
+        let err = resolve_stream_url("ftp://example.com/audio.mp3").unwrap_err();
+        assert!(matches!(err, PodcastHelperError::UnrecognizedSource(_)));
+    }
 
     #[test]
     fn spotify_source_is_refused_without_touching_ffmpeg_or_network() {
