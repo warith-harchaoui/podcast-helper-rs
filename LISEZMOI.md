@@ -43,7 +43,7 @@ println!("à lire avec : ffmpeg -i '{url}' ...");
 ### Différences assumées avec l'original Python
 
 - Pas d'itérateur asynchrone streamé image par image : v0.1 décode en un bloc (`Vec<f32>` complet). Le découpage en frames reste à faire côté appelant si besoin.
-- `itunes:duration` n'est pas extrait (extension podcast non couverte par le modèle unifié de `feed-rs`) : `Episode.duration_seconds` vaut toujours `None` pour l'instant.
+- `Episode.duration_seconds` porte `itunes:duration` depuis la 0.1.3, lu directement dans le XML brut plutôt que repris de `feed-rs` — qui expose bien la balise mais lit la forme `MM:SS` comme un simple compte de secondes (`45:30` devient 45). La valeur reste `None` si le flux omet la balise, l'écrit de façon illisible ou y met le `0` de remplissage.
 - Pas d'extracteur générique façon `yt-dlp` « generic » : une URL HTTP(S) qui n'est ni un flux à extension reconnue ni un hôte DRM/yt-dlp reconnu est tentée directement via `ffmpeg` (comportement volontairement permissif, car beaucoup d'URLs d'enclosure de podcasts n'ont aucune extension).
 
 ## `youtube-helper-rs` — branché
@@ -54,7 +54,7 @@ Limite connue, héritée de `youtube-helper-rs` lui-même : `yt-dlp` peut renvoy
 
 ## Installation
 
-Prérequis : `ffmpeg` sur le `PATH` (macOS : `brew install ffmpeg`).
+Prérequis : `ffmpeg` sur le `PATH` (macOS : `brew install ffmpeg`) ainsi que Rust 1.88 ou plus récent.
 
 ```toml
 [dependencies]
@@ -64,19 +64,20 @@ podcast-helper-rs = "0.1"
 ## État du projet
 
 - `cargo build` : OK, aucun avertissement.
-- `cargo test` : **32 tests unitaires + 1 doctest passés**, 0 échec, 4 tests d'intégration réseau marqués `#[ignore]` (flux RSS réel, décodage `ffmpeg` bout-en-bout, refus Spotify, téléchargement+décodage YouTube réel via `youtube-helper-rs`) — à relancer manuellement via `cargo test -- --ignored` avant de committer un changement sur l'un de ces chemins. Le test YouTube peut échouer dans un environnement en bac à sable pour des raisons indépendantes de ce crate — voir la section ci-dessus.
+- `cargo test` : **46 tests unitaires + 1 doctest passés**, 0 échec, 4 tests d'intégration réseau marqués `#[ignore]` (flux RSS réel, décodage `ffmpeg` bout-en-bout, refus Spotify, téléchargement+décodage YouTube réel via `youtube-helper-rs`) — à relancer manuellement via `cargo test -- --ignored` avant de committer un changement sur l'un de ces chemins. Le test YouTube peut échouer dans un environnement en bac à sable pour des raisons indépendantes de ce crate — voir la section ci-dessus.
 - `cargo clippy --all-targets` : OK, aucun avertissement.
-- **Couverture de code mesurée** (`cargo llvm-cov`, sur les tests par défaut, réseau exclu) : **92,37 % de lignes couvertes** (472 lignes, 36 non couvertes), 88,46 % de régions, 92,96 % de fonctions. Détail par fichier :
+- **Couverture de code mesurée** (`cargo llvm-cov`, sur les tests par défaut, réseau exclu ; remesurée le 2026-10-02 pour la 0.1.3) : **93,15 % de lignes couvertes** (715 lignes, 49 non couvertes), 90,08 % de régions, 93,75 % de fonctions. Détail par fichier :
 
   | Fichier | Lignes couvertes |
   |---|---|
   | `pcm.rs` | 100,00 % |
-  | `ffmpeg.rs` | 98,06 % |
-  | `episode.rs` | 95,12 % |
-  | `source.rs` | 97,01 % |
+  | `duration.rs` | 100,00 % |
+  | `source.rs` | 97,04 % |
+  | `episode.rs` | 95,35 % |
+  | `ffmpeg.rs` | 93,33 % |
   | `ytdlp.rs` | 93,33 % |
-  | `lib.rs` | 91,84 % |
-  | `feed.rs` | 69,33 % (le chemin réseau `fetch_feed`/`latest_episode` n'est exercé que par les tests `#[ignore]`, donc absent de cette mesure) |
+  | `lib.rs` | 87,50 % |
+  | `feed.rs` | 72,94 % (le chemin réseau `fetch_feed`/`latest_episode` n'est exercé que par les tests `#[ignore]`, donc absent de cette mesure) |
 
   Pour relancer la mesure :
 

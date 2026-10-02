@@ -24,6 +24,13 @@ pub fn parse_feed(xml_bytes: &[u8], feed_url: &str) -> Result<Vec<Episode>, Podc
         .filter_map(Episode::try_from_entry)
         .collect();
 
+    // `itunes:duration` is read from the raw bytes rather than taken from feed-rs,
+    // which mis-parses the `MM:SS` form — see `crate::duration` for the detail.
+    let durations = crate::duration::durations_by_enclosure_url(xml_bytes);
+    for episode in &mut episodes {
+        episode.duration_seconds = durations.get(&episode.enclosure_url).copied();
+    }
+
     // Most feeds already list entries newest-first, but that's a convention, not a
     // guarantee. Sort explicitly when we have dates to sort by; otherwise trust
     // feed order (RSS convention: first entry is the latest).
@@ -84,6 +91,17 @@ mod tests {
             episodes[2].title.as_deref(),
             Some("Episode 1: The Beginning")
         );
+    }
+
+    #[test]
+    fn itunes_duration_reaches_the_episode_including_the_mm_ss_form() {
+        let episodes = parse_feed(RSS_FIXTURE, "https://example.com/feed.xml").unwrap();
+        // Newest-first: episode 3 declares no duration, 2 declares `45:30`, 1 `1800`.
+        assert_eq!(episodes[0].duration_seconds, None);
+        // 2730, not 45: feed-rs's own npt parser reads `45:30` as forty-five
+        // seconds, which is exactly why `crate::duration` re-reads the raw XML.
+        assert_eq!(episodes[1].duration_seconds, Some(2730.0));
+        assert_eq!(episodes[2].duration_seconds, Some(1800.0));
     }
 
     #[test]

@@ -26,10 +26,15 @@
 //! # }
 //! ```
 
-// Every public item carries a doc comment. Warned here, denied by CI's
-// `-D warnings`, so a published API never reaches docs.rs undocumented.
-#![warn(missing_docs)]
+// Every public item carries a doc comment, and no `unsafe` appears in the shipped
+// crate — both are enforced here rather than left to review. The `forbid` is lifted
+// under `cfg(test)` only: a couple of tests set a process-wide environment variable,
+// which Rust requires `unsafe` for, and that code never reaches a consumer. `deny`
+// (not `warn`) so the gate holds locally too, not only under CI's `-D warnings`.
+#![cfg_attr(not(test), forbid(unsafe_code))]
+#![deny(missing_docs)]
 
+mod duration;
 mod episode;
 mod error;
 mod feed;

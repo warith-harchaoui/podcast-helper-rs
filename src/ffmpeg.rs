@@ -103,8 +103,46 @@ mod tests {
         writer.finalize().unwrap();
     }
 
+    /// Whether `ffmpeg` can actually be executed on this machine. Probed once:
+    /// several tests ask, and spawning a process per test would dominate them.
+    fn ffmpeg_available() -> bool {
+        use std::sync::OnceLock;
+        static AVAILABLE: OnceLock<bool> = OnceLock::new();
+        *AVAILABLE.get_or_init(|| {
+            std::process::Command::new("ffmpeg")
+                .arg("-version")
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .status()
+                .is_ok_and(|s| s.success())
+        })
+    }
+
+    /// `true` when the caller should end early because ffmpeg is not installed.
+    ///
+    /// A contributor without ffmpeg should see a one-line skip, not a panic that
+    /// reads like the crate is broken. Under CI the opposite is true: a missing
+    /// ffmpeg means the workflow forgot to install it, and skipping would make
+    /// the run green while proving nothing — so there it fails loudly instead.
+    #[must_use]
+    fn skip_without_ffmpeg() -> bool {
+        if ffmpeg_available() {
+            return false;
+        }
+        assert!(
+            std::env::var_os("CI").is_none(),
+            "ffmpeg is missing under CI — the workflow must install it \
+             (see .github/workflows/ci.yml)"
+        );
+        eprintln!("skipped: ffmpeg not on PATH (install ffmpeg to run the full suite)");
+        true
+    }
+
     #[test]
     fn decodes_local_wav_file_via_real_ffmpeg() {
+        if skip_without_ffmpeg() {
+            return;
+        }
         let dir = tempfile::tempdir().unwrap();
         let wav_path = dir.path().join("tone.wav");
         write_sine_wav(&wav_path, 1.0, 44_100);
@@ -140,6 +178,9 @@ mod tests {
 
     #[test]
     fn ffmpeg_failure_on_bad_input_is_a_distinct_error() {
+        if skip_without_ffmpeg() {
+            return;
+        }
         let dir = tempfile::tempdir().unwrap();
         let bogus_path = dir.path().join("not_audio.mp3");
         let mut f = std::fs::File::create(&bogus_path).unwrap();

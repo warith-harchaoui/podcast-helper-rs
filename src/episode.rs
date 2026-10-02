@@ -21,10 +21,11 @@ pub struct Episode {
     pub link: Option<String>,
     /// RFC 3339 / ISO 8601 UTC timestamp, e.g. `2026-08-31T12:00:00Z`.
     pub published_at: Option<String>,
-    /// Not populated in v0.1: `itunes:duration` is a podcast-namespace extension
-    /// feed-rs doesn't surface in its unified model, and parsing it would mean a
-    /// second raw-XML pass. TODO: add a small itunes:duration extractor if a
-    /// downstream caller needs it.
+    /// Episode length in seconds, as the feed's `itunes:duration` declares it —
+    /// `None` when the feed omits it or spells it unreadably. Advisory, like every
+    /// other declared field here: it is what the publisher typed, not what the
+    /// audio measures. Read straight from the XML rather than taken from feed-rs,
+    /// which mis-parses the `MM:SS` form; see `crate::duration`.
     pub duration_seconds: Option<f64>,
     /// Direct URL of the audio file. The only non-optional field here: an
     /// entry without one is not an episode this crate can do anything with,
