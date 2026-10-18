@@ -61,6 +61,38 @@ Prérequis : `ffmpeg` sur le `PATH` (macOS : `brew install ffmpeg`) ainsi que Ru
 podcast-helper-rs = "0.1"
 ```
 
+## Ligne de commande
+
+`cargo install podcast-helper-rs` installe aussi un binaire `podcast-helper-rs` — nommé d'après la
+crate et non d'après la commande `podcast-helper` du jumeau Python, pour que les deux
+cohabitent sur un même `PATH` sans que l'un masque l'autre en silence.
+
+```bash
+podcast-helper-rs latest https://feeds.example.com/show --pretty
+podcast-helper-rs classify https://traffic.megaphone.fm/abc
+podcast-helper-rs extract https://traffic.megaphone.fm/abc episode.wav
+```
+
+En cas de succès, le résultat sur la sortie standard et un code de retour `0` ;
+en cas d'échec, une ligne sur la sortie d'erreur préfixée `podcast-helper-rs: ` et un
+code `1`. Toutes les options et tous les modes d'échec :
+[`skills/podcast-helper-rs/references/cli-reference.md`](skills/podcast-helper-rs/references/cli-reference.md).
+
+## Skill d'agent
+
+`skills/podcast-helper-rs/` empaquette cette crate en **Claude Skill** et en **skill
+OpenCode**, pour qu'un agent la découvre et l'utilise pour le compte de
+l'utilisateur. L'installation pour les deux hôtes est dans
+[`skills/README.md`](skills/README.md).
+
+Son catalogue de déclencheurs est imposé, pas décoratif :
+[`TRIGGERS.md`](TRIGGERS.md) est le catalogue destiné aux humains,
+`references/triggers.md` en est le miroir destiné à l'agent, et
+`tests/skill.rs` fait échouer `cargo test` — donc le hook de pré-push — si les
+deux divergent, si la `description` du skill dépasse le plafond publié de 1024
+caractères, si son `name` cesse de correspondre à son dossier ou s'il pointe
+vers une référence qui n'existe plus.
+
 ## État du projet
 
 - `cargo build` : OK, aucun avertissement.

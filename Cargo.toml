@@ -20,6 +20,13 @@ authors = ["Warith HARCHAOUI <warithmetics@deraison.ai>"]
 keywords = ["podcast", "rss", "audio", "ffmpeg", "pcm"]
 categories = ["multimedia::audio", "parser-implementations"]
 
+[features]
+# On by default so `cargo install podcast-helper-rs` produces the binary.
+# Library users who want neither clap nor hound in their graph depend on this
+# crate with `default-features = false`.
+default = ["cli"]
+cli = ["dep:clap", "dep:hound", "dep:serde_json"]
+
 [dependencies]
 # RSS + Atom parsing in one unified model, so we never hand-roll an XML parser.
 feed-rs = "2"
@@ -33,6 +40,12 @@ ureq = "2"
 # URL parsing for source-kind classification (file / direct audio / feed / DRM).
 url = "2"
 thiserror = "2"
+# CLI-only, behind the `cli` feature below: a library consumer should not pay
+# for an argument parser or a WAV writer it never calls.
+clap = { version = "4", features = ["derive"], optional = true }
+hound = { version = "3", optional = true }
+# JSON output for the CLI only; the library returns typed values.
+serde_json = { version = "1", optional = true }
 serde = { version = "1", features = ["derive"] }
 chrono = { version = "0.4", features = ["serde"] }
 # yt-dlp-compatible sources (YouTube, Vimeo, SoundCloud, Twitch...) are delegated
@@ -47,3 +60,11 @@ tempfile = "3"
 # Used only in tests, to synthesize a tiny local WAV fixture that ffmpeg decodes,
 # so the ffmpeg adapter is exercised by a real subprocess without any network call.
 hound = "3"
+
+[[bin]]
+# Named after the crate, not after the Python twin's `podcast-helper`: the two
+# are meant to coexist on one machine, and identical names would make PATH
+# order decide which one runs.
+name = "podcast-helper-rs"
+path = "src/main.rs"
+required-features = ["cli"]

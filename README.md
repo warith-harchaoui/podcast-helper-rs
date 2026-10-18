@@ -61,6 +61,35 @@ Requires `ffmpeg` on `PATH` (macOS: `brew install ffmpeg`), and Rust 1.88 or new
 podcast-helper-rs = "0.1"
 ```
 
+## Command line
+
+`cargo install podcast-helper-rs` also installs a `podcast-helper-rs` binary — named after the
+crate, not after the Python twin's `podcast-helper`, so the two coexist on one `PATH`
+without either silently shadowing the other.
+
+```bash
+podcast-helper-rs latest https://feeds.example.com/show --pretty
+podcast-helper-rs classify https://traffic.megaphone.fm/abc
+podcast-helper-rs extract https://traffic.megaphone.fm/abc episode.wav
+```
+
+Success prints the result on stdout and exits `0`; failure prints one line on
+stderr, prefixed `podcast-helper-rs: `, and exits `1`. Every flag and every failure mode:
+[`skills/podcast-helper-rs/references/cli-reference.md`](skills/podcast-helper-rs/references/cli-reference.md).
+
+## Agent skill
+
+`skills/podcast-helper-rs/` packages this crate as a **Claude Skill** and an **OpenCode
+skill**, so an agent can discover it and use it on the user's behalf.
+Installation for both hosts is in [`skills/README.md`](skills/README.md).
+
+Its trigger catalogue is enforced, not decorative: [`TRIGGERS.md`](TRIGGERS.md)
+is the user-facing catalogue, `references/triggers.md` is its agent-facing
+mirror, and `tests/skill.rs` fails `cargo test` — and therefore the pre-push
+hook — if the two drift apart, if the skill's `description` exceeds the
+published 1024-character cap, if its `name` stops matching its folder or if it
+points at a reference that no longer exists.
+
 ## Project status
 
 - `cargo build`: clean, no warnings.
