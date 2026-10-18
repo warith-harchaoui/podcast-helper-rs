@@ -13,8 +13,10 @@ rust-version = "1.88"
 description = "URL in, PCM out: local files, direct audio URLs, and RSS/Atom podcast feeds decoded via ffmpeg. Rust port of podcast-helper."
 license = "BSD-3-Clause"
 repository = "https://github.com/warith-harchaoui/podcast-helper-rs"
+homepage = "https://deraison.ai/ai-helpers"
+documentation = "https://docs.rs/podcast-helper-rs"
 readme = "README.md"
-authors = ["Warith HARCHAOUI"]
+authors = ["Warith HARCHAOUI <warithmetics@deraison.ai>"]
 keywords = ["podcast", "rss", "audio", "ffmpeg", "pcm"]
 categories = ["multimedia::audio", "parser-implementations"]
 
