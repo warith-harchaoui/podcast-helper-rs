@@ -4,6 +4,18 @@ All notable changes to `podcast-helper-rs` are documented here. The format follo
 [Keep a Changelog](https://keepachangelog.com/), and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.4] — 2026-10-19
+
+### Changed
+- **`youtube-helper-rs` floor raised from `0.1.2` to `0.1.5`.** That release
+  bounds two reads that previously had no timeout at all: the yt-dlp socket
+  read (`--socket-timeout`) and the provisioning fetch that downloads the
+  yt-dlp binary itself (`curl --max-time`). Caret semantics already resolved a
+  fresh build to 0.1.5, but the floor is what a lockfile-pinned consumer
+  actually gets — and an unbounded read inside a dependency hangs this crate
+  just as surely as one of its own, since the yt-dlp delegation path is how
+  every non-local URL is handled here.
+
 ## [0.1.3] — 2026-10-02
 
 `Episode::duration_seconds` is finally populated — and correct, which took more than reading
