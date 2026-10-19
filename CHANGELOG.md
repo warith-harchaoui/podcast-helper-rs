@@ -4,6 +4,42 @@ All notable changes to `podcast-helper-rs` are documented here. The format follo
 [Keep a Changelog](https://keepachangelog.com/), and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.5] — 2026-10-19
+
+### Fixed
+
+- **A stalled network source could hang the decode forever.** ffmpeg applies no
+  I/O timeout unless asked, so a connection the remote has half-closed is
+  waited on indefinitely: ffmpeg sits at 0 % CPU on a socket that will never
+  deliver another byte, and `decode_with_binary`'s `.output()` blocks on a
+  process that will never exit.
+
+  Network sources now carry `-rw_timeout` ahead of `-i` (60 s;
+  `PODCAST_HELPER_RW_TIMEOUT` in seconds to change it, `0` to opt out). It is a
+  protocol option, hence the placement, and it means nothing for a local path —
+  a file on disk cannot stall on a socket, so local inputs are left alone. The
+  variable is the one the Python twin already honours, so a single knob covers
+  both.
+
+  Anything unparseable or negative falls back to the default rather than
+  removing the bound: an exported-but-empty variable is a common shell accident
+  and must not silently mean "wait forever".
+
+  Same root cause as the fixes in `youtube-helper`, `youtube-helper-rs`,
+  `podcast-helper`, `video-helper` and `sftp-helper`. The honest caveat from
+  that work carries over: `-rw_timeout` removes the common case but is not a
+  guarantee — a run of the Python twin stalled for over four hours with it set.
+
+### Checked, and found sound
+
+- **`parse_itunes_duration` already rejects what its Python twin did not.**
+  Negative values, non-finite values, and minute/second fields of 60 or more
+  are all refused, and a zero total yields `None`. The twin needed a fix for
+  exactly this today; the Rust side had it right from the start.
+- **`PcmStream` is an honest buffer, not a lazy stream** despite the name: the
+  type exposes `samples: Vec<f32>` and the decode is eager. That is a design
+  choice a caller can see in the signature, not a hidden cost.
+
 ## [0.1.4] — 2026-10-19
 
 ### Changed

@@ -18,6 +18,45 @@ pub(crate) fn decode_with_ffmpeg(
 /// Same as `decode_with_ffmpeg`, parameterized on the binary name. Split out so
 /// tests can point at a deliberately-missing binary to deterministically exercise
 /// the `FfmpegNotFound` path — as a plain function argument rather than a process
+/// Schemes ffmpeg reads over a socket, and therefore the ones that can stall.
+const NETWORK_SCHEMES: [&str; 8] = [
+    "http://", "https://", "rtmp://", "rtmps://", "rtsp://", "tcp://", "tls://", "srt://",
+];
+
+/// True when ffmpeg will read `source` over a socket rather than from disk.
+fn is_network_source(source: &str) -> bool {
+    let lowered = source.to_ascii_lowercase();
+    NETWORK_SCHEMES
+        .iter()
+        .any(|scheme| lowered.starts_with(scheme))
+}
+
+/// Microseconds a socket read may stall before ffmpeg gives up.
+///
+/// 60 s is far past any healthy stall, including a slow live source, while
+/// still being a bound. `PODCAST_HELPER_RW_TIMEOUT` is read in **seconds** and
+/// is the same variable the Python twin honours; `0` disables the bound for a
+/// caller who would genuinely rather wait forever.
+fn rw_timeout_micros() -> u64 {
+    parse_rw_timeout(std::env::var("PODCAST_HELPER_RW_TIMEOUT").ok().as_deref())
+}
+
+/// The parsing half, taking the raw value as an argument.
+///
+/// Split out so the tests never touch a process-wide env var: this crate
+/// already learned that lesson for the ffmpeg binary path, which is passed as
+/// a function argument precisely "so it stays safe under parallel test
+/// execution". Anything unparseable or negative falls back to the default
+/// rather than removing the bound -- an exported-but-empty variable is a
+/// common shell accident and must not silently mean "wait forever".
+fn parse_rw_timeout(raw: Option<&str>) -> u64 {
+    let seconds = raw
+        .and_then(|value| value.trim().parse::<f64>().ok())
+        .filter(|value| value.is_finite() && *value >= 0.0)
+        .unwrap_or(60.0);
+    (seconds * 1_000_000.0) as u64
+}
+
 /// env var, so it stays safe under parallel test execution.
 fn decode_with_binary(
     binary: &str,
@@ -26,11 +65,29 @@ fn decode_with_binary(
 ) -> Result<PcmStream, PodcastHelperError> {
     let channels: u16 = if opts.to_mono { 1 } else { 2 };
 
+    // Bound the read before -i, or a stalled source is waited on forever.
+    //
+    // ffmpeg applies no I/O timeout unless asked: a connection the remote has
+    // half-closed leaves ffmpeg at 0 % CPU on a socket that will never deliver
+    // another byte, and `.output()` below waits for a process that will never
+    // exit. The Python twin was observed doing exactly this, and the same
+    // failure reached four other packages in this suite.
+    //
+    // -rw_timeout is a protocol option, so it has to precede -i, and it means
+    // nothing for a local path -- a file on disk cannot stall on a socket.
+    // Same env var as the Python twin, so one knob covers both.
+    let mut args: Vec<String> = vec!["-hide_banner".into(), "-loglevel".into(), "error".into()];
+    if is_network_source(source) {
+        let micros = rw_timeout_micros();
+        if micros > 0 {
+            args.push("-rw_timeout".into());
+            args.push(micros.to_string());
+        }
+    }
+
     let spawned = Command::new(binary)
+        .args(&args)
         .args([
-            "-hide_banner",
-            "-loglevel",
-            "error",
             "-i",
             source,
             "-f",
@@ -191,5 +248,58 @@ mod tests {
             result,
             Err(PodcastHelperError::FfmpegFailed { .. })
         ));
+    }
+}
+
+#[cfg(test)]
+mod timeout_tests {
+    use super::{is_network_source, parse_rw_timeout};
+
+    // ffmpeg applies no I/O timeout unless asked, so a half-closed connection
+    // is waited on forever -- 0 % CPU, socket open, and `.output()` blocking on
+    // a process that will never exit. The same root cause reached five packages
+    // in this suite before it was found.
+
+    #[test]
+    fn network_schemes_are_recognised() {
+        assert!(is_network_source("https://cdn.example.com/ep1.mp3"));
+        assert!(is_network_source("HTTP://CDN.EXAMPLE.COM/ep1.mp3"));
+        assert!(is_network_source("rtsp://host/stream"));
+    }
+
+    #[test]
+    fn local_paths_are_not_network_sources() {
+        // A file on disk cannot stall on a socket, so the flag would be noise.
+        assert!(!is_network_source("/tmp/episode.mp3"));
+        assert!(!is_network_source("relative/episode.wav"));
+    }
+
+    #[test]
+    fn the_default_bound_is_finite() {
+        // The property that matters is simply that it is never unbounded.
+        assert!(parse_rw_timeout(None) > 0);
+    }
+
+    #[test]
+    fn the_bound_is_overridable_in_seconds() {
+        assert_eq!(parse_rw_timeout(Some("5")), 5_000_000);
+    }
+
+    #[test]
+    fn zero_disables_the_bound_deliberately() {
+        // Waiting forever is defensible as a choice, not as a default.
+        assert_eq!(parse_rw_timeout(Some("0")), 0);
+    }
+
+    #[test]
+    fn a_nonsense_override_falls_back_to_the_default() {
+        // An exported-but-empty variable is a common shell accident; it must
+        // not turn into `-rw_timeout 0` and silently remove the bound.
+        for bad in ["", "   ", "not-a-number", "-5"] {
+            assert!(
+                parse_rw_timeout(Some(bad)) > 0,
+                "{bad:?} should fall back, not disable"
+            );
+        }
     }
 }

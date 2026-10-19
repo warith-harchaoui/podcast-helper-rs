@@ -93,6 +93,31 @@ deux divergent, si la `description` du skill dépasse le plafond publié de 1024
 caractères, si son `name` cesse de correspondre à son dossier ou s'il pointe
 vers une référence qui n'existe plus.
 
+## Quand un flux se bloque
+
+ffmpeg n'applique aucun délai d'E/S sans qu'on le lui demande : une connexion
+que le serveur a à moitié fermée est donc attendue indéfiniment — ffmpeg reste
+à 0 % de CPU sur une socket qui ne livrera plus un octet, tandis que l'appel de
+décodage attend un processus qui ne se terminera jamais. Les sources réseau
+sont donc lues avec `-rw_timeout` (60 s par défaut) :
+
+```bash
+export PODCAST_HELPER_RW_TIMEOUT=120   # secondes ; 0 désactive la borne
+```
+
+Même variable que celle honorée par le jumeau Python : un seul réglage couvre
+les deux. Les chemins locaux n'en reçoivent jamais — un fichier sur disque ne
+peut pas se bloquer sur une socket. Toute valeur illisible ou négative retombe
+sur le défaut plutôt que de supprimer la borne : une variable exportée mais
+vide est un accident de shell courant qui ne doit pas vouloir dire « attendre
+indéfiniment ».
+
+**Cela borne la lecture, cela ne rend pas le blocage impossible.** Une
+exécution du jumeau Python a été observée bloquée plus de quatre heures sur une
+URL `googlevideo.com` avec l'option équivalente posée : elle ne couvre pas
+toutes les façons qu'a un CDN de se taire. Si votre traitement *doit* aboutir,
+donnez-lui une borne qui lui appartient.
+
 ## État du projet
 
 - `cargo build` : OK, aucun avertissement.

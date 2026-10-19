@@ -90,6 +90,29 @@ hook — if the two drift apart, if the skill's `description` exceeds the
 published 1024-character cap, if its `name` stops matching its folder or if it
 points at a reference that no longer exists.
 
+## When a stream stalls
+
+ffmpeg applies no I/O timeout unless asked, so a connection the remote has
+half-closed is waited on forever: ffmpeg sits at 0 % CPU holding a socket that
+will never deliver another byte, and the decode call blocks on a process that
+will never exit. Network sources are therefore read with `-rw_timeout` (60 s by
+default), so a dead connection fails instead of hanging:
+
+```bash
+export PODCAST_HELPER_RW_TIMEOUT=120   # seconds; 0 disables the bound
+```
+
+Same variable the Python twin honours, so one knob covers both. Local paths are
+never given a timeout — a file on disk cannot stall on a socket. Anything
+unparseable or negative falls back to the default rather than removing the
+bound, because an exported-but-empty variable is a common shell accident and
+must not silently mean "wait forever".
+
+**This bounds the read; it does not make a stall impossible.** A run of the
+Python twin was observed hanging for over four hours on a `googlevideo.com` URL
+with the equivalent option set, so it does not cover every way a CDN can go
+quiet. If your job *must* finish, give it a bound it owns.
+
 ## Project status
 
 - `cargo build`: clean, no warnings.
