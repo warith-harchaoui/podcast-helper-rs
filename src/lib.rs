@@ -123,6 +123,24 @@ pub fn resolve_stream_url(source: &str) -> Result<String, PodcastHelperError> {
     }
 }
 
+/// Serializes every test that touches the process environment.
+///
+/// **Readers must take this too, not only writers.** `std::env::set_var` is
+/// `unsafe` because setting a variable may reallocate the `environ` block
+/// while another thread sits inside `getenv`, which then reads freed memory.
+/// A lock held only by writers protects nothing, and the symptom is not a
+/// wrong value — it is an *unrelated* test failing, rarely, under load.
+///
+/// youtube-helper-rs shipped exactly that bug: its suite passed 25/25 locally
+/// and failed about one run in three on GitHub's Ubuntu runner, always in an
+/// innocent module. This crate had the same shape — one test writing
+/// `YOUTUBE_HELPER_YTDLP_BIN` while `ffmpeg.rs` read `PODCAST_HELPER_RW_TIMEOUT`
+/// and `CI` on other threads — behind a SAFETY note that checked the wrong
+/// invariant: it reasoned about who else *writes* that one variable, when the
+/// hazard is anybody reading *any* variable.
+#[cfg(test)]
+pub(crate) static ENV_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -194,8 +212,14 @@ mod tests {
         // does not exist, so the delegation path is exercised deterministically
         // and the failure surfaces as `PodcastHelperError::YtDlp`, not a panic
         // or a silent fallback.
-        // SAFETY: this crate's tests run in one process; no other test mutates
-        // this specific env var concurrently.
+        let _guard = crate::ENV_MUTEX
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        // SAFETY: serialized via `ENV_MUTEX`, which the environment-reading
+        // tests in `ffmpeg.rs` also take. The previous note here claimed
+        // safety because "no other test mutates this specific env var" — true,
+        // and beside the point: the race is against concurrent `getenv`, not
+        // against another writer.
         unsafe {
             std::env::set_var("YOUTUBE_HELPER_YTDLP_BIN", "yt-dlp-does-not-exist-anywhere");
         }

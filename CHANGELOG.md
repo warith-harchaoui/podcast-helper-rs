@@ -4,6 +4,31 @@ All notable changes to `podcast-helper-rs` are documented here. The format follo
 [Keep a Changelog](https://keepachangelog.com/), and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.6] - 2026-10-23
+
+### Fixed
+
+- **A latent data race on the process environment, behind a SAFETY note that
+  checked the wrong invariant.** One test set `YOUTUBE_HELPER_YTDLP_BIN` and
+  justified it with "no other test mutates this specific env var
+  concurrently" — true, and beside the point. `std::env::set_var` is `unsafe`
+  because setting a variable may reallocate the `environ` block while another
+  thread is inside `getenv`; the hazard is anybody *reading* any variable, not
+  another writer.
+
+  This crate had readers: `ffmpeg.rs` consults `PODCAST_HELPER_RW_TIMEOUT` on
+  every ffmpeg invocation and `CI` in its skip guard, across nine tests, all
+  running concurrently with the writer among 52 in one process.
+
+  Found by generalising the identical bug in youtube-helper-rs, where it was
+  not latent: that suite passed 25 runs out of 25 locally and failed roughly
+  one in three on GitHub's Ubuntu runner, always pointing at an innocent
+  module. Nothing here had failed yet — which is the only reason to call this
+  latent rather than broken.
+
+  An `ENV_MUTEX` now serializes the writer **and** the environment-reading
+  test guard, and its documentation states that readers must take it.
+
 ## [0.1.5] — 2026-10-19
 
 ### Fixed

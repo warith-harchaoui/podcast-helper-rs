@@ -186,6 +186,12 @@ mod tests {
         if ffmpeg_available() {
             return false;
         }
+        // Reading the environment is the other half of the race: see
+        // `crate::ENV_MUTEX`. Taking it here is what makes the writer's lock
+        // in `lib.rs` mean anything.
+        let _guard = crate::ENV_MUTEX
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         assert!(
             std::env::var_os("CI").is_none(),
             "ffmpeg is missing under CI — the workflow must install it \
