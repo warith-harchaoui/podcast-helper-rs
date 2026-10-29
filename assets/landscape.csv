@@ -1,0 +1,7 @@
+Rust Podcast Audio,RSS / Atom parsing,iTunes duration correctness,Source classification,PCM decode,Live stream resolve,Feed authoring,Async API,Typed errors
+podcast-helper-rs,4,5,5,5,5,1,1,5
+feed-rs,5,2,1,1,1,1,1,3
+feedparser-rs,5,4,1,1,1,1,4,3
+rss,4,2,1,1,1,5,1,3
+podfeed,3,2,2,1,1,4,1,2
+ffmpeg-next,1,1,1,5,3,1,1,2

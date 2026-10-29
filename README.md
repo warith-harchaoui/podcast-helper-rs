@@ -52,6 +52,10 @@ YouTube/Vimeo/SoundCloud/Twitch sources are detected (`SourceKind::YtDlp`, `src/
 
 Known limitation, inherited from `youtube-helper-rs` itself: `yt-dlp` can hit an `HTTP 403 Forbidden` from YouTube's media CDN in sandboxed/CI-like environments without browser cookies or a PO-token provider configured (YouTube-side anti-bot enforcement, not a bug in either crate). The error surfaces cleanly as `PodcastHelperError::YtDlp { .. }` in that case — see `tests/network_integration.rs`.
 
+## How it works
+
+![How podcast-helper-rs works: any podcast URL in, PCM out, with DRM refused rather than faked](https://raw.githubusercontent.com/warith-harchaoui/podcast-helper-rs/master/assets/diagrams/how-it-works.png)
+
 ## Installation
 
 Requires `ffmpeg` on `PATH` (macOS: `brew install ffmpeg`), and Rust 1.88 or newer.

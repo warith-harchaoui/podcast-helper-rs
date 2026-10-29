@@ -8,7 +8,7 @@ Réécriture en Rust de [`podcast-helper`](https://github.com/warith-harchaoui/p
 
 ## Périmètre v0.1
 
-**Deux points d'entrée, et l'écart compte pour un média en direct.**
+**Deux points d'entrée et l'écart compte pour un média en direct.**
 
 - `extract_audio_stream(source: &str) -> Result<PcmStream, PodcastHelperError>` décode tout et rend du PCM. Suppose que le média finisse.
 - `resolve_stream_url(source: &str) -> Result<String, PodcastHelperError>` rend une adresse, pour un appelant qui lit à son rythme. **Le seul des deux qui marche sur une émission en direct**, qui ne finit jamais de se télécharger.
@@ -18,7 +18,7 @@ Les deux font la même classification, qui distingue en interne :
 | Source | Détection | Comportement |
 |---|---|---|
 | Fichier local | chemin existant ou schéma `file://` | décodage direct via `ffmpeg` |
-| URL audio directe (`.mp3`, `.m4a`, `.opus`, `.wav`, `.m3u8`, ou URL sans extension reconnue) | extension connue, ou repli par défaut | décodage direct via `ffmpeg` |
+| URL audio directe (`.mp3`, `.m4a`, `.opus`, `.wav`, `.m3u8` ou URL sans extension reconnue) | extension connue ou repli par défaut | décodage direct via `ffmpeg` |
 | Flux RSS/Atom | extension `.xml`/`.rss`/`.atom`/`.json` | parsing via [`feed-rs`](https://crates.io/crates/feed-rs), sélection automatique du dernier épisode, puis décodage de son enclosure |
 | Spotify (`*.spotify.com`) | correspondance d'hôte | **refusé** : `PodcastHelperError::DrmProtected`, avec suggestion de chercher le flux RSS public de l'émission |
 | Apple Podcasts (`podcasts.apple.com`) | correspondance d'hôte | **refusé**, même comportement |
@@ -36,9 +36,9 @@ let url = podcast_helper_rs::resolve_stream_url("https://www.youtube.com/watch?v
 println!("à lire avec : ffmpeg -i '{url}' ...");
 ```
 
-`resolve_stream_url` rend un chemin local inchangé, une URL directe inchangée, l'enclosure du dernier épisode d'un flux après un seul téléchargement du document de flux et aucun transfert de média, et l'adresse signée d'une source yt-dlp. Un catalogue protégé est refusé exactement comme le refuse le chemin de décodage : les deux points d'entrée s'accordent sur ce qui est impossible, donc une adresse Spotify n'atteint jamais `ffmpeg` pour y échouer sous les traits d'une panne de réseau.
+`resolve_stream_url` rend un chemin local inchangé, une URL directe inchangée, l'enclosure du dernier épisode d'un flux après un seul téléchargement du document de flux et aucun transfert de média et l'adresse signée d'une source yt-dlp. Un catalogue protégé est refusé exactement comme le refuse le chemin de décodage : les deux points d'entrée s'accordent sur ce qui est impossible, donc une adresse Spotify n'atteint jamais `ffmpeg` pour y échouer sous les traits d'une panne de réseau.
 
-**Une adresse résolue peut périmer.** YouTube signe ses adresses de média et les invalide en quelques heures : la résoudre juste avant de s'en servir, et ne jamais la garder.
+**Une adresse résolue peut périmer.** YouTube signe ses adresses de média et les invalide en quelques heures : la résoudre juste avant de s'en servir et ne jamais la garder.
 
 ### Différences assumées avec l'original Python
 
@@ -51,6 +51,10 @@ println!("à lire avec : ffmpeg -i '{url}' ...");
 Les sources YouTube/Vimeo/SoundCloud/Twitch sont détectées (`SourceKind::YtDlp`, `src/source.rs`) et déléguées à [`youtube-helper-rs`](https://github.com/warith-harchaoui/youtube-helper-rs) (`src/ytdlp.rs`) : la piste audio est téléchargée dans un répertoire temporaire, puis le fichier WAV obtenu est décodé par le même chemin `ffmpeg` que les fichiers locaux — un seul chemin de décodage pour tous les types de source pris en charge, pas un cas particulier par plateforme.
 
 Limite connue, héritée de `youtube-helper-rs` lui-même : `yt-dlp` peut renvoyer un `HTTP 403 Forbidden` de YouTube dans des environnements en bac à sable/de type CI sans cookies de navigateur ni fournisseur de jeton PO configuré (mesure anti-robot côté YouTube, pas un bug de l'un ou l'autre crate). L'erreur remonte proprement sous la forme `PodcastHelperError::YtDlp { .. }` dans ce cas — voir `tests/network_integration.rs`.
+
+## Comment ça marche
+
+![Comment podcast-helper-rs fonctionne : n'importe quelle URL de podcast en entrée, du PCM en sortie, le DRM refusé plutôt que simulé](https://raw.githubusercontent.com/warith-harchaoui/podcast-helper-rs/master/assets/diagrams/comment-ca-marche.png)
 
 ## Installation
 
@@ -157,10 +161,10 @@ cargo test --all
 scripts/check-fresh-resolve.sh   # compile sans Cargo.lock, comme un consommateur en aval
 ```
 
-Le dernier existe parce que les trois autres, et la CI, compilent tous contre le
+Le dernier existe parce que les trois autres et la CI, compilent tous contre le
 `Cargo.lock` commité — que personne n'utilise en aval du crate publié. Un intervalle de
 dépendance devenu mauvais reste vert ici tout en cassant chaque `cargo add` / `cargo
-install` neuf, et `cargo publish --dry-run` ne le voit pas non plus (il vérifie avec le
+install` neuf et `cargo publish --dry-run` ne le voit pas non plus (il vérifie avec le
 même lock). La CI lance ce contrôle une fois, sous Linux.
 
 ## Projets liés
