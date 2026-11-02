@@ -56,6 +56,37 @@ Known limitation, inherited from `youtube-helper-rs` itself: `yt-dlp` can hit an
 
 ![How podcast-helper-rs works: any podcast URL in, PCM out, with DRM refused rather than faked](https://raw.githubusercontent.com/warith-harchaoui/podcast-helper-rs/master/assets/diagrams/how-it-works.png)
 
+## Decoding: the default is already the fast path
+
+Audio decoding has a tempting hardware story — macOS exposes AudioToolbox to ffmpeg as `mp3_at`
+/ `aac_at`, Windows exposes Media Foundation the same way — and preferring those looks obvious.
+Measured on Apple Silicon, 600 s of audio to 16 kHz mono PCM, it is wrong:
+
+| source | decoder | time |
+|---|---|---|
+| mp3 | `mp3` (ffmpeg's own) | 0.03 s · 0.04 s |
+| mp3 | `mp3_at` (AudioToolbox) | 0.07 s · 0.05 s |
+| m4a | `aac` (ffmpeg's own) | 0.04 s · 0.05 s |
+| m4a | `aac_at` (AudioToolbox) | 0.06 s · 0.05 s |
+
+The platform decoder is consistently **slower**: it is an API call whose overhead exceeds the
+decode, because the decode is tiny — 600 s of audio in 0.03 s is about twenty-thousand times
+real time. For a network source the download is three orders of magnitude slower; the decoder
+is never what you are waiting for.
+
+The other suspicion, also killed by measurement: a podcast source is often a video container,
+and decoding 1080p frames only to discard them would be real waste. ffmpeg does not do it —
+raw PCM output cannot carry video, so the stream is never mapped and never decoded. On a 117 MB
+1080p MP4: **0.03–0.04 s with `-vn` and without**. The flag would be decoration.
+
+So the default stands, now on evidence rather than assumption. An explicit decoder still wins
+outright, for the machine where this turns out differently:
+
+```sh
+podcast-helper-rs extract ep.mp3 out.wav --decoder mp3_at
+PODCAST_HELPER_DECODER=aac_at podcast-helper-rs extract ep.m4a out.wav
+```
+
 ## Installation
 
 Requires `ffmpeg` on `PATH` (macOS: `brew install ffmpeg`), and Rust 1.88 or newer.

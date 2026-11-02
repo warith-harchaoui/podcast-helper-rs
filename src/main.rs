@@ -61,6 +61,10 @@ enum Command {
         /// Keep both channels instead of downmixing to mono.
         #[arg(long)]
         stereo: bool,
+        /// Force an ffmpeg decoder (e.g. `mp3_at`, `aac_at`). Rarely useful:
+        /// ffmpeg's own decoders measured faster than the platform ones.
+        #[arg(long)]
+        decoder: Option<String>,
     },
 }
 
@@ -82,10 +86,12 @@ fn main() -> ExitCode {
             output,
             sample_rate,
             stereo,
+            decoder,
         } => {
             let options = ExtractOptions {
                 sample_rate,
                 to_mono: !stereo,
+                decoder,
             };
             extract_audio_stream_with_options(&source, &options)
                 .map_err(|e| e.to_string())

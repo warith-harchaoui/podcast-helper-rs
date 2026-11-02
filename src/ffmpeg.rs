@@ -85,6 +85,13 @@ fn decode_with_binary(
         }
     }
 
+    // Un decodeur nomme se place AVANT -i : apres l'entree, `-c:a` designerait
+    // un codec de sortie et re-encoderait le PCM au lieu de choisir comment il
+    // est lu. Rien n'est ajoute quand personne n'a rien demande, et c'est le cas
+    // ordinaire : voir `crate::accel` pour les mesures qui le justifient.
+    let forced = crate::accel::decoder(opts.decoder.as_deref());
+    args.extend(crate::accel::input_args(forced.as_ref()));
+
     let spawned = Command::new(binary)
         .args(&args)
         .args([
@@ -213,6 +220,7 @@ mod tests {
         let opts = ExtractOptions {
             sample_rate: 16_000,
             to_mono: true,
+            decoder: None,
         };
         let stream = decode_with_ffmpeg(wav_path.to_str().unwrap(), &opts).unwrap();
 
@@ -254,6 +262,40 @@ mod tests {
             result,
             Err(PodcastHelperError::FfmpegFailed { .. })
         ));
+    }
+    /// A forced decoder must reach ffmpeg and be *used*, not merely accepted.
+    /// Asking for a decoder that cannot read the input is the cheap way to prove
+    /// it: a WAV read through `mp3` must fail. If the flag were dropped, or
+    /// placed after `-i` where it would mean something else, this would pass
+    /// quietly and the override would be decorative.
+    #[test]
+    fn a_forced_decoder_actually_reaches_ffmpeg() {
+        if !ffmpeg_available() {
+            return;
+        }
+        let dir = tempfile::tempdir().unwrap();
+        let wav_path = dir.path().join("tone.wav");
+        write_sine_wav(&wav_path, 1.0, 44_100);
+
+        let opts = ExtractOptions {
+            sample_rate: 16_000,
+            to_mono: true,
+            decoder: Some("mp3".to_string()),
+        };
+        let outcome = decode_with_ffmpeg(wav_path.to_str().unwrap(), &opts);
+        assert!(
+            outcome.is_err(),
+            "a WAV decoded as mp3 should fail; the forced decoder never arrived"
+        );
+
+        // And the same file without the override decodes fine, so the failure
+        // above is the decoder and not a broken fixture.
+        let plain = ExtractOptions {
+            sample_rate: 16_000,
+            to_mono: true,
+            decoder: None,
+        };
+        assert!(decode_with_ffmpeg(wav_path.to_str().unwrap(), &plain).is_ok());
     }
 }
 

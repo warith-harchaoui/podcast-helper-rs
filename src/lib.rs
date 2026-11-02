@@ -34,6 +34,7 @@
 #![cfg_attr(not(test), forbid(unsafe_code))]
 #![deny(missing_docs)]
 
+pub mod accel;
 mod duration;
 mod episode;
 mod error;
@@ -43,6 +44,7 @@ mod pcm;
 mod source;
 mod ytdlp;
 
+pub use accel::{Choice as DecoderChoice, DECODER_ENV};
 pub use episode::Episode;
 pub use error::PodcastHelperError;
 pub use feed::{fetch_feed, latest_episode, parse_feed};

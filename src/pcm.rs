@@ -36,12 +36,21 @@ impl PcmStream {
 
 /// Decoding parameters. Defaults match the Python original's quick-start example:
 /// 16 kHz mono, the shape most speech-recognition/VAD models expect.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct ExtractOptions {
     /// Resample to this rate, in hertz.
     pub sample_rate: u32,
     /// Down-mix to a single channel.
     pub to_mono: bool,
+    /// Force a particular ffmpeg decoder (`"mp3_at"`, `"aac_at"`, ...) instead of
+    /// letting ffmpeg choose.
+    ///
+    /// `None` is the right answer almost always: ffmpeg's own decoders measured
+    /// *faster* than the platform ones here, and audio decoding is some four
+    /// orders of magnitude off being the bottleneck. See [`crate::accel`] for
+    /// the numbers. This exists so a machine where that is untrue is still
+    /// reachable — and a name given here is used exactly as given.
+    pub decoder: Option<String>,
 }
 
 impl Default for ExtractOptions {
@@ -49,6 +58,7 @@ impl Default for ExtractOptions {
         Self {
             sample_rate: 16_000,
             to_mono: true,
+            decoder: None,
         }
     }
 }

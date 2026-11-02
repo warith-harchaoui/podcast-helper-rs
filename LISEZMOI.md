@@ -56,6 +56,38 @@ Limite connue, héritée de `youtube-helper-rs` lui-même : `yt-dlp` peut renvoy
 
 ![Comment podcast-helper-rs fonctionne : n'importe quelle URL de podcast en entrée, du PCM en sortie, le DRM refusé plutôt que simulé](https://raw.githubusercontent.com/warith-harchaoui/podcast-helper-rs/master/assets/diagrams/comment-ca-marche.png)
 
+## Décodage : le défaut est déjà le chemin rapide
+
+Le décodage audio a une histoire matérielle tentante — macOS expose AudioToolbox à ffmpeg sous
+les noms `mp3_at` / `aac_at`, Windows fait pareil avec Media Foundation — et les préférer semble
+aller de soi. Mesuré sur Apple Silicon, 600 s d'audio vers du PCM 16 kHz mono, c'est faux :
+
+| source | décodeur | temps |
+|---|---|---|
+| mp3 | `mp3` (celui de ffmpeg) | 0,03 s · 0,04 s |
+| mp3 | `mp3_at` (AudioToolbox) | 0,07 s · 0,05 s |
+| m4a | `aac` (celui de ffmpeg) | 0,04 s · 0,05 s |
+| m4a | `aac_at` (AudioToolbox) | 0,06 s · 0,05 s |
+
+Le décodeur de la plateforme est **plus lent**, régulièrement : c'est un appel d'API dont le
+surcoût dépasse le décodage, parce que le décodage est minuscule — 600 s d'audio en 0,03 s,
+soit environ vingt mille fois le temps réel. Sur une source réseau, le téléchargement est trois
+ordres de grandeur plus lent ; ce n'est jamais le décodeur qu'on attend.
+
+L'autre soupçon, tué par la mesure lui aussi : une source de podcast est souvent un conteneur
+vidéo, et décoder des images 1080p pour les jeter serait un vrai gâchis. ffmpeg ne le fait pas —
+une sortie PCM brute ne peut pas porter de vidéo, donc le flux n'est jamais mappé ni décodé.
+Sur un MP4 1080p de 117 Mo : **0,03 à 0,04 s avec `-vn` comme sans**. Le drapeau serait
+décoratif.
+
+Le défaut reste donc, mais sur preuve et non sur supposition. Un décodeur explicite gagne
+toujours, pour la machine où ça se passerait autrement :
+
+```sh
+podcast-helper-rs extract ep.mp3 out.wav --decoder mp3_at
+PODCAST_HELPER_DECODER=aac_at podcast-helper-rs extract ep.m4a out.wav
+```
+
 ## Installation
 
 Prérequis : `ffmpeg` sur le `PATH` (macOS : `brew install ffmpeg`) ainsi que Rust 1.88 ou plus récent.
