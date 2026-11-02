@@ -1,6 +1,6 @@
 # Paysage
 
-🇫🇷 Français · [🇬🇧 LANDSCAPE.md](https://github.com/warith-harchaoui/podcast-helper-rs/blob/master/LANDSCAPE.md)
+🇫🇷 Français · [🇬🇧 LANDSCAPE.md](https://github.com/warith-harchaoui/podcast-helper-rs/blob/main/LANDSCAPE.md)
 
 Crates voisins puis concurrents dans l'espace « audio de podcast ou de flux vers du PCM, en Rust », comparés à `podcast-helper-rs`. Les notes
 vont de ⭐ (1) à ⭐⭐⭐⭐⭐ (5), évaluées sur la tâche visée par `podcast-helper-rs` :

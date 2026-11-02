@@ -1,6 +1,6 @@
 # Podcast Helper (Rust)
 
-[🇫🇷](https://github.com/warith-harchaoui/podcast-helper-rs/blob/master/LISEZMOI.md) · [🇬🇧](https://github.com/warith-harchaoui/podcast-helper-rs/blob/master/README.md)
+[🇫🇷](https://github.com/warith-harchaoui/podcast-helper-rs/blob/main/LISEZMOI.md) · [🇬🇧](https://github.com/warith-harchaoui/podcast-helper-rs/blob/main/README.md)
 
 [![crates.io](https://img.shields.io/crates/v/podcast-helper-rs.svg)](https://crates.io/crates/podcast-helper-rs) [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](./LICENSE)
 

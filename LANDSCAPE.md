@@ -1,6 +1,6 @@
 # Landscape
 
-[🇫🇷 PAYSAGE.md](https://github.com/warith-harchaoui/podcast-helper-rs/blob/master/PAYSAGE.md) · 🇬🇧 English
+[🇫🇷 PAYSAGE.md](https://github.com/warith-harchaoui/podcast-helper-rs/blob/main/PAYSAGE.md) · 🇬🇧 English
 
 Related and competing crates in the "podcast or feed audio to PCM, in Rust" space, benchmarked against `podcast-helper-rs`.
 Ratings are ⭐ (1) to ⭐⭐⭐⭐⭐ (5), scored on `podcast-helper-rs`'s intended job:
