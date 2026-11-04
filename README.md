@@ -54,7 +54,7 @@ Known limitation, inherited from `youtube-helper-rs` itself: `yt-dlp` can hit an
 
 ## How it works
 
-![How podcast-helper-rs works: any podcast URL in, PCM out, with DRM refused rather than faked](https://raw.githubusercontent.com/warith-harchaoui/podcast-helper-rs/master/assets/diagrams/how-it-works.png)
+![How podcast-helper-rs works: any podcast URL in, PCM out, with DRM refused rather than faked](https://raw.githubusercontent.com/warith-harchaoui/podcast-helper-rs/main/assets/diagrams/how-it-works.png)
 
 ## Decoding: the default is already the fast path
 
@@ -93,7 +93,7 @@ Requires `ffmpeg` on `PATH` (macOS: `brew install ffmpeg`), and Rust 1.88 or new
 
 ```toml
 [dependencies]
-podcast-helper-rs = "0.1"
+podcast-helper-rs = "0.2"
 ```
 
 ## Command line

@@ -34,7 +34,7 @@ use podcast_helper_rs::{latest_episode, extract_audio_stream_with_options, Extra
 let episode = latest_episode("https://feeds.example.com/show")?;
 let pcm = extract_audio_stream_with_options(
     &episode.enclosure_url,
-    &ExtractOptions { sample_rate: 16_000, to_mono: true },
+    &ExtractOptions { sample_rate: 16_000, to_mono: true, ..Default::default() },
 )?;
 ```
 

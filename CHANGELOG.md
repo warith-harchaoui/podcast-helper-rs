@@ -4,6 +4,29 @@ All notable changes to `podcast-helper-rs` are documented here. The format follo
 [Keep a Changelog](https://keepachangelog.com/), and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [0.2.0] - 2026-11-04
+
+Whether decoding should go through the platform codec layer was measured
+rather than assumed, and the answer is no: the default stays. What was missing
+was a way to override it.
+
+### Added
+
+- **`ExtractOptions::decoder`**, `--decoder` on `extract`, and the
+  `PODCAST_HELPER_DECODER` environment variable (`DECODER_ENV`) name an ffmpeg
+  decoder that is placed before `-i` and used exactly as given, never measured
+  or replaced. The new `accel` module holds the choice (`accel::decoder`,
+  re-exported as `DecoderChoice`) and the measurements behind the default:
+  on 600 s of audio to 16 kHz mono PCM, `mp3` 0.03-0.04 s against `mp3_at`
+  0.05-0.07 s, `aac` 0.04-0.05 s against `aac_at` 0.05-0.06 s.
+
+### Changed
+
+- **Breaking:** `ExtractOptions` has a new public field, `decoder`, and is no
+  longer `Copy` (it now holds a `String`). Code that builds it field by field
+  must add `decoder: None` or use `..Default::default()`; code that relied on
+  implicit copies must `.clone()`.
+
 ## [0.1.6] - 2026-10-23
 
 ### Fixed

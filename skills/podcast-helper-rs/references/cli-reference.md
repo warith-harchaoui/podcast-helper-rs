@@ -56,10 +56,16 @@ refused outright.
 
 ```
 podcast-helper-rs extract <SOURCE> <OUTPUT> [--sample-rate HZ] [--stereo]
+    [--decoder NAME]
 ```
 
 Decodes to PCM and writes a 32-bit float WAV. Defaults to `16000` Hz and mono,
 which is what speech models expect; `--stereo` keeps both channels.
+
+`--decoder` forces an ffmpeg decoder (`mp3_at`, `aac_at`...), passed before
+`-i` and used exactly as given; `PODCAST_HELPER_DECODER` does the same without
+a flag, and the flag wins. Leave both unset: ffmpeg's own decoders measured
+faster than the platform ones, and decoding is nowhere near the bottleneck.
 
 Float, because that is what the decoder produced and quantising on the way out
 would be a loss nobody asked for. If integer PCM is needed, convert afterwards

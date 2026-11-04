@@ -54,7 +54,7 @@ Limite connue, héritée de `youtube-helper-rs` lui-même : `yt-dlp` peut renvoy
 
 ## Comment ça marche
 
-![Comment podcast-helper-rs fonctionne : n'importe quelle URL de podcast en entrée, du PCM en sortie, le DRM refusé plutôt que simulé](https://raw.githubusercontent.com/warith-harchaoui/podcast-helper-rs/master/assets/diagrams/comment-ca-marche.png)
+![Comment podcast-helper-rs fonctionne : n'importe quelle URL de podcast en entrée, du PCM en sortie, le DRM refusé plutôt que simulé](https://raw.githubusercontent.com/warith-harchaoui/podcast-helper-rs/main/assets/diagrams/comment-ca-marche.png)
 
 ## Décodage : le défaut est déjà le chemin rapide
 
@@ -94,7 +94,7 @@ Prérequis : `ffmpeg` sur le `PATH` (macOS : `brew install ffmpeg`) ainsi que Ru
 
 ```toml
 [dependencies]
-podcast-helper-rs = "0.1"
+podcast-helper-rs = "0.2"
 ```
 
 ## Ligne de commande
