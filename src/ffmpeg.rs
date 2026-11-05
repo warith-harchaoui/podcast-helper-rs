@@ -318,7 +318,7 @@ mod timeout_tests {
     #[test]
     fn local_paths_are_not_network_sources() {
         // A file on disk cannot stall on a socket, so the flag would be noise.
-        assert!(!is_network_source("/tmp/episode.mp3"));
+        assert!(!is_network_source("/path/to/episode.mp3"));
         assert!(!is_network_source("relative/episode.wav"));
     }
 
