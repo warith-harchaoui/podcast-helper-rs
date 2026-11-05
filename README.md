@@ -94,6 +94,16 @@ let options = podcast_helper_rs::ExtractOptions { decoder: Some("mp3_at".into())
 let pcm = podcast_helper_rs::extract_audio_stream_with_options("ep.mp3", &options)?;
 ```
 
+### Ubuntu + NVIDIA
+
+Nothing to configure: any `ffmpeg` on `PATH` (Ubuntu's `apt install ffmpeg`, or a static build).
+An ffmpeg built with NVDEC (`h264_cuvid`, `hevc_cuvid`, `-hwaccel cuda`) or NVENC changes nothing,
+because the video stream of a source is never mapped, so never decoded (measured above), and
+NVIDIA ships no audio decoder. No `-hwaccel` flag is passed, on purpose: it would initialise CUDA
+for a stream nobody reads. `PODCAST_HELPER_DECODER` names an **audio** decoder; a `*_cuvid` name
+there is a video decoder and makes ffmpeg fail. To check a machine, the extraction itself is the
+test: `podcast-helper-rs extract <video.mp4> out.wav` must work whatever `ffmpeg -hwaccels` lists.
+
 ## Installation
 
 Requires `ffmpeg` on `PATH` (macOS: `brew install ffmpeg`), and Rust 1.88 or newer.
