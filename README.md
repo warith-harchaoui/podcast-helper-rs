@@ -6,7 +6,7 @@
 
 Rust rewrite of [`podcast-helper`](https://github.com/warith-harchaoui/podcast-helper). Same promise, **URL in, PCM out**: give it any audio source, get back a PCM stream (pulse-code modulation, the raw uncompressed sampling that speech-recognition models expect) — not a line-by-line port of the Python code, idiomatic Rust throughout.
 
-## v0.1 scope
+## Scope
 
 **Two entry points, and the difference matters for live media.**
 
@@ -27,6 +27,8 @@ Both run the same classification, which distinguishes internally between:
 
 Output: `PcmStream { sample_rate, channels, samples: Vec<f32> }`, 16 kHz mono by default (`ExtractOptions::default()`), configurable via `extract_audio_stream_with_options`.
 
+The pieces are public too, for a caller that wants the feed without the audio: `classify_source(source) -> SourceKind` says how a source would be handled without touching the network, `parse_feed(xml_bytes, feed_url)` and `fetch_feed(url)` return every `Episode` of a feed (title, publication date, duration, enclosure URL, type and size, image), and `latest_episode(url)` returns the newest one.
+
 ```rust
 let pcm = podcast_helper_rs::extract_audio_stream("https://feeds.npr.org/510289/podcast.xml")?;
 println!("{} samples at {} Hz", pcm.samples.len(), pcm.sample_rate);
@@ -42,7 +44,7 @@ println!("stream it with: ffmpeg -i '{url}' ...");
 
 ### Deliberate differences from the Python original
 
-- No frame-by-frame async iterator: v0.1 decodes into one block (a full `Vec<f32>`). Splitting into frames is left to the caller for now.
+- No frame-by-frame async iterator: this crate decodes into one block (a full `Vec<f32>`). Splitting into frames is left to the caller for now.
 - `Episode.duration_seconds` carries `itunes:duration` since 0.1.3, read from the raw XML rather than from `feed-rs` — which does surface the tag but parses the `MM:SS` form as a bare seconds count (`45:30` becomes 45). It is `None` when the feed omits the tag, spells it unreadably, or writes the placeholder `0`.
 - No generic `yt-dlp`-style extractor: an HTTP(S) URL that is neither a recognized stream extension nor a known DRM/yt-dlp host is attempted directly via `ffmpeg` (a deliberately permissive choice, since many podcast enclosure URLs have no extension at all).
 
@@ -87,13 +89,30 @@ podcast-helper-rs extract ep.mp3 out.wav --decoder mp3_at
 PODCAST_HELPER_DECODER=aac_at podcast-helper-rs extract ep.m4a out.wav
 ```
 
+```rust
+let options = podcast_helper_rs::ExtractOptions { decoder: Some("mp3_at".into()), ..Default::default() };
+let pcm = podcast_helper_rs::extract_audio_stream_with_options("ep.mp3", &options)?;
+```
+
 ## Installation
 
 Requires `ffmpeg` on `PATH` (macOS: `brew install ffmpeg`), and Rust 1.88 or newer.
 
+YouTube, Vimeo, SoundCloud and Twitch sources also need `yt-dlp`. `youtube-helper-rs` takes the
+one on `PATH`, or else downloads the official standalone build once into the user cache;
+`YOUTUBE_HELPER_NO_AUTO_INSTALL=1` forbids that download. Installing `yt-dlp` yourself
+(`brew install yt-dlp`, `pip install yt-dlp`) avoids it.
+
 ```toml
 [dependencies]
 podcast-helper-rs = "0.2"
+```
+
+The default `cli` feature builds the `podcast-helper-rs` binary and pulls in `clap`, `hound`
+and `serde_json`. A library consumer that never calls the binary can leave them out:
+
+```toml
+podcast-helper-rs = { version = "0.2", default-features = false }
 ```
 
 ## Command line
@@ -151,7 +170,7 @@ quiet. If your job *must* finish, give it a bound it owns.
 ## Project status
 
 - `cargo build`: clean, no warnings.
-- `cargo test`: **46 unit tests + 1 doctest passing**, 0 failures, plus 4 `#[ignore]`d network integration tests (a real RSS feed, an end-to-end `ffmpeg` decode, a Spotify refusal, a real YouTube download+decode via `youtube-helper-rs`) — run manually via `cargo test -- --ignored` before committing changes to any of these paths. The YouTube one can fail in sandboxed environments for reasons unrelated to this crate — see the section above.
+- `cargo test`: **56 unit tests + 6 skill-catalogue tests + 1 doctest passing**, 0 failures, plus 4 `#[ignore]`d network integration tests (a real RSS feed, an end-to-end `ffmpeg` decode, a Spotify refusal, a real YouTube download+decode via `youtube-helper-rs`) — run manually via `cargo test -- --ignored` before committing changes to any of these paths. The YouTube one can fail in sandboxed environments for reasons unrelated to this crate — see the section above.
 - `cargo clippy --all-targets`: clean, no warnings.
 - **Measured code coverage** (`cargo llvm-cov`, default test suite, network excluded; re-measured 2026-10-02 for 0.1.3): **93.15% line coverage** (715 lines, 49 uncovered), 90.08% region coverage, 93.75% function coverage. Per-file breakdown:
 

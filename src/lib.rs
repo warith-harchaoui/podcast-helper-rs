@@ -7,7 +7,7 @@
 //! (DRM-gated, impossible to process locally) with a pointer toward the show's
 //! public RSS feed instead.
 //!
-//! v0.1 scope: local files, direct audio URLs, RSS/Atom feeds, and yt-dlp-compatible
+//! Scope: local files, direct audio URLs, RSS/Atom feeds, and yt-dlp-compatible
 //! sources (YouTube, Vimeo, SoundCloud, Twitch, ...) — the last one delegated to
 //! [`youtube_helper_rs`]. See [`PodcastHelperError::YtDlp`] and the crate README.
 //!

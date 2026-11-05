@@ -6,7 +6,7 @@
 
 Réécriture en Rust de [`podcast-helper`](https://github.com/warith-harchaoui/podcast-helper). Même promesse, **URL in, PCM out** : donnez une source audio quelconque, récupérez un flux PCM (pulse-code modulation, l'échantillonnage brut non compressé attendu par les modèles de reconnaissance vocale) — pas un portage ligne à ligne du code Python, du Rust idiomatique de bout en bout.
 
-## Périmètre v0.1
+## Périmètre
 
 **Deux points d'entrée et l'écart compte pour un média en direct.**
 
@@ -38,11 +38,13 @@ println!("à lire avec : ffmpeg -i '{url}' ...");
 
 `resolve_stream_url` rend un chemin local inchangé, une URL directe inchangée, l'enclosure du dernier épisode d'un flux après un seul téléchargement du document de flux et aucun transfert de média et l'adresse signée d'une source yt-dlp. Un catalogue protégé est refusé exactement comme le refuse le chemin de décodage : les deux points d'entrée s'accordent sur ce qui est impossible, donc une adresse Spotify n'atteint jamais `ffmpeg` pour y échouer sous les traits d'une panne de réseau.
 
+Les briques sont publiques elles aussi, pour qui veut le flux sans l'audio : `classify_source(source) -> SourceKind` dit comment une source serait traitée sans toucher au réseau ; `parse_feed(xml_bytes, feed_url)` ainsi que `fetch_feed(url)` rendent chaque `Episode` d'un flux (titre, date de publication, durée, URL d'enclosure, type, taille, image) ; `latest_episode(url)` rend le plus récent.
+
 **Une adresse résolue peut périmer.** YouTube signe ses adresses de média et les invalide en quelques heures : la résoudre juste avant de s'en servir et ne jamais la garder.
 
 ### Différences assumées avec l'original Python
 
-- Pas d'itérateur asynchrone streamé image par image : v0.1 décode en un bloc (`Vec<f32>` complet). Le découpage en frames reste à faire côté appelant si besoin.
+- Pas d'itérateur asynchrone streamé image par image : ce crate décode en un bloc (`Vec<f32>` complet). Le découpage en frames reste à faire côté appelant si besoin.
 - `Episode.duration_seconds` porte `itunes:duration` depuis la 0.1.3, lu directement dans le XML brut plutôt que repris de `feed-rs` — qui expose bien la balise mais lit la forme `MM:SS` comme un simple compte de secondes (`45:30` devient 45). La valeur reste `None` si le flux omet la balise, l'écrit de façon illisible ou y met le `0` de remplissage.
 - Pas d'extracteur générique façon `yt-dlp` « generic » : une URL HTTP(S) qui n'est ni un flux à extension reconnue ni un hôte DRM/yt-dlp reconnu est tentée directement via `ffmpeg` (comportement volontairement permissif, car beaucoup d'URLs d'enclosure de podcasts n'ont aucune extension).
 
@@ -75,7 +77,7 @@ soit environ vingt mille fois le temps réel. Sur une source réseau, le téléc
 ordres de grandeur plus lent ; ce n'est jamais le décodeur qu'on attend.
 
 L'autre soupçon, tué par la mesure lui aussi : une source de podcast est souvent un conteneur
-vidéo, et décoder des images 1080p pour les jeter serait un vrai gâchis. ffmpeg ne le fait pas —
+vidéo ; décoder des images 1080p pour les jeter serait un vrai gâchis. ffmpeg ne le fait pas —
 une sortie PCM brute ne peut pas porter de vidéo, donc le flux n'est jamais mappé ni décodé.
 Sur un MP4 1080p de 117 Mo : **0,03 à 0,04 s avec `-vn` comme sans**. Le drapeau serait
 décoratif.
@@ -88,13 +90,31 @@ podcast-helper-rs extract ep.mp3 out.wav --decoder mp3_at
 PODCAST_HELPER_DECODER=aac_at podcast-helper-rs extract ep.m4a out.wav
 ```
 
+```rust
+let options = podcast_helper_rs::ExtractOptions { decoder: Some("mp3_at".into()), ..Default::default() };
+let pcm = podcast_helper_rs::extract_audio_stream_with_options("ep.mp3", &options)?;
+```
+
 ## Installation
 
 Prérequis : `ffmpeg` sur le `PATH` (macOS : `brew install ffmpeg`) ainsi que Rust 1.88 ou plus récent.
 
+Les sources YouTube, Vimeo, SoundCloud et Twitch demandent aussi `yt-dlp`. `youtube-helper-rs`
+prend celui du `PATH`, sinon il télécharge une fois la version autonome officielle dans le cache
+de l'utilisateur ; `YOUTUBE_HELPER_NO_AUTO_INSTALL=1` interdit ce téléchargement. Installer
+`yt-dlp` soi-même (`brew install yt-dlp`, `pip install yt-dlp`) l'évite.
+
 ```toml
 [dependencies]
 podcast-helper-rs = "0.2"
+```
+
+La fonctionnalité `cli`, active par défaut, construit le binaire `podcast-helper-rs` et tire
+`clap`, `hound` ainsi que `serde_json`. Une bibliothèque qui n'appelle jamais le binaire peut
+s'en passer :
+
+```toml
+podcast-helper-rs = { version = "0.2", default-features = false }
 ```
 
 ## Ligne de commande
@@ -123,7 +143,7 @@ l'utilisateur. L'installation pour les deux hôtes est dans
 
 Son catalogue de déclencheurs est imposé, pas décoratif :
 [`TRIGGERS.md`](TRIGGERS.md) est le catalogue destiné aux humains,
-`references/triggers.md` en est le miroir destiné à l'agent, et
+`references/triggers.md` en est le miroir destiné à l'agent ;
 `tests/skill.rs` fait échouer `cargo test` — donc le hook de pré-push — si les
 deux divergent, si la `description` du skill dépasse le plafond publié de 1024
 caractères, si son `name` cesse de correspondre à son dossier ou s'il pointe
@@ -157,7 +177,7 @@ donnez-lui une borne qui lui appartient.
 ## État du projet
 
 - `cargo build` : OK, aucun avertissement.
-- `cargo test` : **46 tests unitaires + 1 doctest passés**, 0 échec, 4 tests d'intégration réseau marqués `#[ignore]` (flux RSS réel, décodage `ffmpeg` bout-en-bout, refus Spotify, téléchargement+décodage YouTube réel via `youtube-helper-rs`) — à relancer manuellement via `cargo test -- --ignored` avant de committer un changement sur l'un de ces chemins. Le test YouTube peut échouer dans un environnement en bac à sable pour des raisons indépendantes de ce crate — voir la section ci-dessus.
+- `cargo test` : **56 tests unitaires + 6 tests du catalogue de la skill + 1 doctest passés**, 0 échec, 4 tests d'intégration réseau marqués `#[ignore]` (flux RSS réel, décodage `ffmpeg` bout-en-bout, refus Spotify, téléchargement+décodage YouTube réel via `youtube-helper-rs`) — à relancer manuellement via `cargo test -- --ignored` avant de committer un changement sur l'un de ces chemins. Le test YouTube peut échouer dans un environnement en bac à sable pour des raisons indépendantes de ce crate — voir la section ci-dessus.
 - `cargo clippy --all-targets` : OK, aucun avertissement.
 - **Couverture de code mesurée** (`cargo llvm-cov`, sur les tests par défaut, réseau exclu ; remesurée le 2026-10-02 pour la 0.1.3) : **93,15 % de lignes couvertes** (715 lignes, 49 non couvertes), 90,08 % de régions, 93,75 % de fonctions. Détail par fichier :
 
@@ -193,7 +213,7 @@ cargo test --all
 scripts/check-fresh-resolve.sh   # compile sans Cargo.lock, comme un consommateur en aval
 ```
 
-Le dernier existe parce que les trois autres et la CI, compilent tous contre le
+Le dernier existe parce que les trois autres, comme la CI, compilent tous contre le
 `Cargo.lock` commité — que personne n'utilise en aval du crate publié. Un intervalle de
 dépendance devenu mauvais reste vert ici tout en cassant chaque `cargo add` / `cargo
 install` neuf et `cargo publish --dry-run` ne le voit pas non plus (il vérifie avec le
