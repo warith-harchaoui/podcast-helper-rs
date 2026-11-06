@@ -105,7 +105,26 @@ const FICTITIOUS_PREFIXES: &[&str] = &["/path/to/", "/home/user/", "/Users/you/"
 
 /// `(file, literal, reason)`: literals the scan flags that are right where they stand.
 const EXCEPTIONS: &[(&str, &str, &str)] = &[
-    // none in this repository
+    (
+        "src/ffmpeg.rs",
+        "/tmp/episode.mp3",
+        "unit test: any local file path, the code never opens it",
+    ),
+    (
+        "src/lib.rs",
+        "/tmp/episode.mp3",
+        "unit test: any local file path, the code never opens it",
+    ),
+    (
+        "src/source.rs",
+        "/tmp/episode.wav",
+        "unit test: any local file path, the code never opens it",
+    ),
+    (
+        "src/source.rs",
+        "/tmp/episode.mp3",
+        "unit test: any local file path, the code never opens it",
+    ),
 ];
 
 const TEXT_SUFFIXES: &[&str] = &[

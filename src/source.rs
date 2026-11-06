@@ -127,15 +127,15 @@ mod tests {
     #[test]
     fn bare_absolute_path_is_local_file() {
         assert_eq!(
-            classify_source("/path/to/episode.wav"),
-            SourceKind::LocalFile(PathBuf::from("/path/to/episode.wav"))
+            classify_source("/tmp/episode.wav"),
+            SourceKind::LocalFile(PathBuf::from("/tmp/episode.wav"))
         );
     }
 
     #[test]
     fn file_scheme_url_is_local_file() {
-        match classify_source("file:///path/to/episode.mp3") {
-            SourceKind::LocalFile(path) => assert_eq!(path, PathBuf::from("/path/to/episode.mp3")),
+        match classify_source("file:///tmp/episode.mp3") {
+            SourceKind::LocalFile(path) => assert_eq!(path, PathBuf::from("/tmp/episode.mp3")),
             other => panic!("expected LocalFile, got {other:?}"),
         }
     }

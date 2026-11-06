@@ -158,8 +158,8 @@ mod tests {
         // ffmpeg already reads a file incrementally, so there is nothing to
         // resolve: handing back the path keeps the caller's single code path.
         assert_eq!(
-            resolve_stream_url("/path/to/episode.mp3").unwrap(),
-            "/path/to/episode.mp3"
+            resolve_stream_url("/tmp/episode.mp3").unwrap(),
+            "/tmp/episode.mp3"
         );
     }
 
