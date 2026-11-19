@@ -4,6 +4,26 @@ All notable changes to `podcast-helper-rs` are documented here. The format follo
 [Keep a Changelog](https://keepachangelog.com/), and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [0.2.1] - 2026-11-19
+
+### Documentation
+
+- **The crate page now says that yt-dlp sources need yt-dlp**, shows the
+  public streaming API, and says what an Ubuntu + NVIDIA machine changes to
+  extraction: nothing, and why no `-hwaccel` is passed. crates.io and docs.rs
+  show the README of the published version, so these corrections needed a
+  release to reach them.
+
+### Changed
+
+- `youtube-helper-rs` requirement raised to 0.1.7, the release whose page
+  documents the same prerequisites.
+
+### Tests
+
+- Tests take obviously fictitious paths; a test refuses any machine path or
+  hard-coded absolute path in tracked files.
+
 ## [0.2.0] - 2026-11-04
 
 Whether decoding should go through the platform codec layer was measured
